@@ -23,7 +23,6 @@ Le projet est configuré par défaut pour utiliser des données de test (Mocks).
 ### Option A : Via Visual Studio 2022
 
 Ouvrez le fichier Crealab.Monitor.sln.
-Assurez-vous que le projet de démarrage est bien Crealab.Web.
 Appuyez sur F5 (ou le bouton vert "Play").
 
 ### Option B : Via le Terminal / VS Code
