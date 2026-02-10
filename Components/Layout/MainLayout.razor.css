@@ -8,6 +8,26 @@ main {
     flex: 1;
 }
 
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+    .header h1 {
+        margin: 0;
+        color: var(--text-main);
+        font-weight: 800;
+    }
+
+    .header p {
+        margin: 0;
+        color: var(--text-muted);
+    }
+
 
 .top-row {
     background-color: #f7f7f7;
@@ -68,7 +88,7 @@ main {
         width: 0;
     }
 
-    .top-row, article {
+    .top-row {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
     }

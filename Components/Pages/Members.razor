@@ -1,36 +1,31 @@
 ﻿@page "/members"
 
+@inject PageHeaderService HeaderService
 
 <PageTitle>Créalab - Membres</PageTitle>
 
+<SectionContent SectionName="HeaderActions">
+    <div class="filters-bar">
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" placeholder="Rechercher..."
+                   @bind="SearchTerm" @bind:event="oninput" />
+        </div>
+
+        <div class="filter-buttons">
+            <button class="filter-btn @(FilterType == "All" ? "active" : "")"
+                    @onclick='() => SetFilter("All")'>
+                Tous
+            </button>
+            <button class="filter-btn @(FilterType == "Board" ? "active" : "")"
+                    @onclick='() => SetFilter("Board")'>
+                Bureau
+            </button>
+        </div>
+    </div>
+</SectionContent>
+
 <div class="main-container theme-industrial">
-
-    <header class="page-header">
-        <div class="header-text">
-            <h1>Membres (@FilteredMembers.Count)</h1>
-            <p>Annuaire de l'association</p>
-        </div>
-
-        <div class="filters-bar">
-            <div class="search-box">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" placeholder="Rechercher un membre..."
-                       @bind="SearchTerm" @bind:event="oninput" />
-            </div>
-
-            <div class="filter-buttons">
-                <button class="filter-btn @(FilterType == "All" ? "active" : "")"
-                        @onclick='() => SetFilter("All")'>
-                    Tous
-                </button>
-                <button class="filter-btn @(FilterType == "Board" ? "active" : "")"
-                        @onclick='() => SetFilter("Board")'>
-                    Bureau
-                </button>
-            </div>
-        </div>
-    </header>
-
     <div class="members-grid">
         @foreach (var member in FilteredMembers)
         {
@@ -70,6 +65,7 @@
     protected override void OnInitialized()
     {
         LoadMockMember();
+        HeaderService.SetTitle($"Membres {FilteredMembers.Count}", "Annuaire de l'association");
     }
 
     // Propriété calculée pour le filtrage dynamique

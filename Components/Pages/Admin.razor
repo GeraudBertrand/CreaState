@@ -1,21 +1,16 @@
 ﻿@page "/admin"
 
+@inject PageHeaderService HeaderService
+
 <PageTitle>Créalab - Administration</PageTitle>
 
+<SectionContent SectionName="HeaderActions">
+    <div class="system-status">
+        <span class="status-dot online"></span> Serveur MQTT: <strong>Connecté</strong>
+    </div>
+</SectionContent>
+
 <div class="main-container theme-industrial">
-
-    <header class="page-header">
-        <div class="header-text">
-            <h1>Administration</h1>
-            <p>Configuration du parc et communication</p>
-        </div>
-        <!-- Indicateur Statut MQTT (Simulation) -->
-        <div class="system-status">
-            <span class="status-dot online"></span> Serveur MQTT: <strong>Connecté</strong>
-        </div>
-    </header>
-
-    <!-- Navigation par Onglets -->
     <div class="tabs">
         <button class="tab-btn @(ActiveTab == "printers" ? "active" : "")"
                 @onclick='() => SetTab("printers")'>
@@ -32,8 +27,6 @@
     </div>
 
     <div class="tab-content">
-
-        <!-- ONGLET 1 : IMPRIMANTES -->
         @if (ActiveTab == "printers")
         {
             <div class="section-card">
@@ -94,12 +87,10 @@
             </div>
         }
 
-        <!-- ONGLET 2 : COMMUNICATION -->
         @if (ActiveTab == "comms")
         {
             <div class="comms-grid">
 
-                <!-- Créer une annonce -->
                 <div class="section-card">
                     <div class="card-header">
                         <h3><i class="fa-solid fa-plus"></i> Publier une annonce</h3>
@@ -133,7 +124,6 @@
                     </div>
                 </div>
 
-                <!-- Liste des annonces actives -->
                 <div class="section-card">
                     <div class="card-header">
                         <h3><i class="fa-solid fa-clock-rotate-left"></i> Annonces Actives</h3>
@@ -161,7 +151,6 @@
             </div>
         }
 
-        <!-- ONGLET 3 : UTILISATEURS (Simulé) -->
         @if (ActiveTab == "users")
         {
             <div class="section-card">
@@ -191,43 +180,45 @@
 
     protected override void OnInitialized()
     {
+        HeaderService.SetTitle("Administration", "Configuration du parc et communication");
         LoadMockData();
     }
 
     private void SetTab(string tab) => ActiveTab = tab;
 
-    // --- Logique Imprimantes ---
-    private void AddNewPrinter()
-    {
-        Printers.Add(new Printer { Name = "Nouvelle Imprimante", IpAddress = "0.0.0.0" });
-    }
+    #region Printers
+        private void AddNewPrinter()
+        {
+            Printers.Add(new Printer { Name = "Nouvelle Imprimante", IpAddress = "0.0.0.0" });
+        }
 
-    private void RemovePrinter(Printer p)
-    {
-        Printers.Remove(p);
-    }
+        private void RemovePrinter(Printer p)
+        {
+            Printers.Remove(p);
+        }
+    #endregion
 
-    // --- Logique Annonces ---
-    private void PublishAnnouncement()
-    {
-        if (string.IsNullOrWhiteSpace(NewAnnouncement.Title)) return;
+    #region Announcement
+        private void PublishAnnouncement()
+        {
+            if (string.IsNullOrWhiteSpace(NewAnnouncement.Title)) return;
 
-        NewAnnouncement.Id = Announcements.Count + 1;
-        NewAnnouncement.PublishDate = DateTime.Now;
-        NewAnnouncement.DisplayDuration = TimeSpan.FromDays(DurationDays);
+            NewAnnouncement.Id = Announcements.Count + 1;
+            NewAnnouncement.PublishDate = DateTime.Now;
+            NewAnnouncement.DisplayDuration = TimeSpan.FromDays(DurationDays);
 
-        // Ajout à la liste (en mémoire)
-        Announcements.Add(NewAnnouncement);
+            Announcements.Add(NewAnnouncement);
 
-        // Reset formulaire
-        NewAnnouncement = new Announcement();
-        DurationDays = 3;
-    }
+            NewAnnouncement = new Announcement();
+            DurationDays = 3;
+        }
 
-    private void DeleteAnnouncement(Announcement a)
-    {
-        Announcements.Remove(a);
-    }
+        private void DeleteAnnouncement(Announcement a)
+        {
+            Announcements.Remove(a);
+        }
+    #endregion
+    
 
     private void LoadMockData()
     {

@@ -1,16 +1,10 @@
 ﻿@page "/"
 
+@inject PageHeaderService HeaderService
 
 <PageTitle>Créalab - Dashboard</PageTitle>
 
 <div class="main-container theme-industrial">
-    <header class="header">
-        <div class="titles">
-            <h1>Bienvenue au Créalab</h1>
-            <p>Résumé des activités et informations importantes</p>
-        </div>
-    </header>
-
     <div class="kpi-row">
         <div class="kpi-card">
             <div class="kpi-icon kpi-blue"><i class="fa-solid fa-users"></i></div>
@@ -109,6 +103,7 @@
 
     protected override void OnInitialized()
     {
+        HeaderService.SetTitle("Bienvenue au Créalab", "Résumé des activités et informations importantes");
         LoadMockData();
         GetLastAnnouncement();
         GetNextEvent();

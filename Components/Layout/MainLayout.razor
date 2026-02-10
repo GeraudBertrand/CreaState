@@ -1,6 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @inject PageHeaderService HeaderService
-
+@implements IDisposable
 
 <div class="page">
     <div class="sidebar">
@@ -8,7 +8,18 @@
     </div> 
 
     <main>
-        <article class="content px-4">
+        <header class="header px-4">
+            <div class="header-text">
+                <h1>@HeaderService.Title</h1>
+                <p>@HeaderService.Description</p>
+            </div>
+
+            <div class="header-actions">
+                <SectionOutlet SectionName="HeaderActions" />
+            </div>
+        </header>
+
+        <article class="content">
             @Body
         </article>
     </main>
@@ -19,3 +30,18 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+
+@code{
+    protected override void OnInitialized()
+    {
+        // On s'abonne aux changements de titre
+        HeaderService.OnChange += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        // On se désabonne pour éviter les fuites de mémoire
+        HeaderService.OnChange -= StateHasChanged;
+    }
+}

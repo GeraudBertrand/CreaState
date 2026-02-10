@@ -1,15 +1,10 @@
 ﻿@page "/printers"
 
+@inject PageHeaderService HeaderService
 
 <PageTitle>Créalab Monitor</PageTitle>
 
 <div class="main-container theme-industrial">
-    <header class="header">
-        <div class="titles">
-            <h1>État du Parc</h1>
-            <p>Supervision en temps réel des Bambu Lab</p>
-        </div>
-    </header>
 
     @if (Imprimantes == null)
     {
@@ -42,6 +37,7 @@
 
     protected override void OnInitialized()
     {
+        HeaderService.SetTitle("État du Parc", "Supervision en temps réel des Bambu Lab");
         LoadMockData();
     }
 

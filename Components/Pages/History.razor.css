@@ -10,17 +10,6 @@
     gap: 20px;
 }
 
-.header-text h1 {
-    margin: 0;
-    font-size: 1.8rem;
-    color: var(--text-main, #2c3e50);
-}
-
-.header-text p {
-    margin: 5px 0 0;
-    color: var(--text-muted, #95a5a6);
-}
-
 .stats-summary {
     display: flex;
     gap: 20px;
