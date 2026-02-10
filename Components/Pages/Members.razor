@@ -1,0 +1,121 @@
+﻿@page "/members"
+
+
+<PageTitle>Créalab - Membres</PageTitle>
+
+<div class="main-container theme-industrial">
+
+    <header class="page-header">
+        <div class="header-text">
+            <h1>Membres (@FilteredMembers.Count)</h1>
+            <p>Annuaire de l'association</p>
+        </div>
+
+        <div class="filters-bar">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Rechercher un membre..."
+                       @bind="SearchTerm" @bind:event="oninput" />
+            </div>
+
+            <div class="filter-buttons">
+                <button class="filter-btn @(FilterType == "All" ? "active" : "")"
+                        @onclick='() => SetFilter("All")'>
+                    Tous
+                </button>
+                <button class="filter-btn @(FilterType == "Board" ? "active" : "")"
+                        @onclick='() => SetFilter("Board")'>
+                    Bureau
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="members-grid">
+        @foreach (var member in FilteredMembers)
+        {
+            <div class="member-card">
+                <div class="card-top">
+                    <div class="avatar" style="background-color: @member.AvatarColor">
+                        @member.Initials
+                    </div>
+                    <div class="member-identity">
+                        <h3>@member.FullName</h3>
+                        <span class="member-role @(member.IsBoardMember ? "role-board" : "")">
+                            @member.RoleLabel
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-details">
+                    <div class="detail-item">
+                        <i class="fa-solid fa-graduation-cap"></i> Promo @member.ClassYearLabel
+                    </div>
+                    <div class="detail-item">
+                        <i class="fa-regular fa-envelope"></i> Contacter
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+
+@code {
+
+    private List<Member> AllMembers = new();
+    private string SearchTerm = "";
+    private string FilterType = "All"; // All, Board
+
+    protected override void OnInitialized()
+    {
+        LoadMockMember();
+    }
+
+    // Propriété calculée pour le filtrage dynamique
+    private List<Member> FilteredMembers
+    {
+        get
+        {
+            var query = AllMembers.AsEnumerable();
+
+            // 1. Filtre Recherche Texte
+            if (!string.IsNullOrWhiteSpace(SearchTerm))
+            {
+                query = query.Where(m =>
+                    m.FullName.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                    m.RoleLabel.Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+                );
+            }
+
+            switch (FilterType)
+            {
+                case "Board":
+                    query = query.Where(m => m.IsBoardMember);
+                    break;
+            }
+
+            return query.ToList();
+        }
+    }
+
+    private void SetFilter(string type)
+    {
+        FilterType = type;
+    }
+
+    private void LoadMockMember()
+    {
+        AllMembers = new List<Member>
+        {
+            new Member { Id=1, FirstName="Thomas", LastName="R.", Role=RoleEnum.President, ClassYear=ClassYearEnum.A5 },
+            new Member { Id=2, FirstName="Alex", LastName="D.", Role=RoleEnum.TechManager, ClassYear=ClassYearEnum.A4 },
+            new Member { Id=3, FirstName="Géraud", LastName="B", Role=RoleEnum.PartnershipManager, ClassYear=ClassYearEnum.A3 },
+            new Member { Id=4, FirstName="Julie", LastName="M.", Role=RoleEnum.Treasurer, ClassYear=ClassYearEnum.A4 },
+            new Member { Id=5, FirstName="Lucas", LastName="P.", Role=RoleEnum.Member, ClassYear=ClassYearEnum.A3 },
+            new Member { Id=6, FirstName="Emma", LastName="S.", Role=RoleEnum.Member, ClassYear=ClassYearEnum.A2 },
+            new Member { Id=7, FirstName="Nathan", LastName="B.", Role=RoleEnum.Member, ClassYear=ClassYearEnum.A1 },
+            new Member { Id=8, FirstName="Chloé", LastName="G.", Role=RoleEnum.Member, ClassYear=ClassYearEnum.A3 }
+        };
+    }
+}

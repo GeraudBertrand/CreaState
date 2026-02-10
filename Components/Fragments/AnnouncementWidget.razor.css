@@ -1,0 +1,67 @@
+﻿.widget-card {
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    color: white; /* Texte blanc par défaut sur les fonds colorés */
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.widget-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+}
+
+    .widget-title i {
+        margin-right: 10px;
+        font-size: 1.2rem;
+    }
+
+.announcement-content p {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    opacity: 0.95;
+}
+
+.publish-date {
+    display: block;
+    margin-top: 10px;
+    font-size: 0.75rem;
+    opacity: 0.7;
+    font-style: italic;
+    text-align: right;
+}
+
+.announcement-info {
+    background: linear-gradient(135deg, #0896b5, #2980b9);
+}
+
+.announcement-warning {
+    background: linear-gradient(135deg, #f18904, #e67e22);
+}
+
+.announcement-danger {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.animate-pop {
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

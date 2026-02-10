@@ -1,0 +1,24 @@
+﻿<div class="formation-item">
+    <div class="date-badge">
+        <span class="date-day">@formation.DayBadge</span>
+        <span class="date-month">@formation.MonthBadge</span>
+    </div>
+
+    <div class="formation-info">
+        <h4>@formation.Title</h4>
+        <div class="meta-info">
+            <i class="fa-regular fa-clock"></i> @formation.FormattedTimeRange
+            <span class="separator">•</span>
+            <span class="instructor">Animé par @formation.Instructor</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(formation.Description))
+        {
+            <p class="description">@formation.Description</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public required Formation formation { get; set; }
+}

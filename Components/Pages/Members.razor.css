@@ -1,0 +1,192 @@
+﻿.members-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* --- Header --- */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-text h1 {
+    margin: 0;
+    color: var(--text-main, #2c3e50);
+    font-size: 1.8rem;
+}
+
+.header-text p {
+    margin: 5px 0 0;
+    color: var(--text-muted, #95a5a6);
+}
+
+/* --- Filtres & Recherche --- */
+.filters-bar {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    width: 250px;
+}
+
+    .search-box i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted, #95a5a6);
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 10px 10px 10px 35px;
+        border: 1px solid var(--border-color, #e1e8ed);
+        border-radius: 8px;
+        font-family: inherit;
+        outline: none;
+    }
+
+        .search-box input:focus {
+            border-color: var(--primary-blue, #0896b5);
+        }
+
+.filter-buttons {
+    display: flex;
+    background: white;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e1e8ed);
+}
+
+.filter-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    color: var(--text-muted, #95a5a6);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+    .filter-btn:hover {
+        color: var(--primary-blue, #0896b5);
+    }
+
+    .filter-btn.active {
+        background-color: var(--bg-app, #f4f7f9);
+        color: var(--text-main, #2c3e50);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+.dot-present {
+    width: 8px;
+    height: 8px;
+    background-color: var(--status-success, #2ecc71);
+    border-radius: 50%;
+}
+
+/* --- Grille --- */
+.members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* --- Carte Membre --- */
+.member-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color, #e1e8ed);
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+    .member-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+        border-color: var(--primary-blue, #0896b5);
+    }
+
+.status-indicator {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 12px;
+    height: 12px;
+    background-color: var(--status-success, #2ecc71);
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+}
+
+.card-top {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 1.5rem;
+}
+
+.avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.member-identity h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-main, #2c3e50);
+}
+
+.member-role {
+    font-size: 0.8rem;
+    color: var(--text-muted, #95a5a6);
+}
+
+    .member-role.role-board {
+        color: var(--accent-magenta, #d41a5f);
+        font-weight: 600;
+    }
+
+.card-details {
+    border-top: 1px solid var(--border-color, #f1f3f5);
+    padding-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.detail-item {
+    font-size: 0.85rem;
+    color: var(--text-muted, #95a5a6);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+}
+
+    /* Style de lien pour l'email */
+    .detail-item:last-child:hover {
+        color: var(--primary-blue, #0896b5);
+        cursor: pointer;
+    }

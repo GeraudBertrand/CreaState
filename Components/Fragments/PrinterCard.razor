@@ -1,0 +1,47 @@
+﻿<div class="printer-card">
+    <div class="status-stripe @printer.GetStatusColor()"></div>
+
+    <div class="card-header">
+        <div class="printer-info">
+            <span class="name">@printer.Name</span>
+            <span class="model">• @printer.Model</span>
+        </div>
+        <span class="badge @printer.GetStatusColor()">
+            @printer.StatusLabel
+        </span>
+    </div>
+
+    <div class="card-body">
+        <div class="progress-section">
+            <div class="file-info">
+                <span class="filename">@(string.IsNullOrEmpty(printer.CurrentFile) ? "--" : printer.CurrentFile)</span>
+                <span class="percent">@printer.Progress%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill @printer.GetStatusColor()"
+                     style="width: @(printer.Progress)%"></div>
+            </div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric">
+                <i class="fa-solid fa-temperature-three-quarters"></i> @printer.NozzleTemp°C
+            </div>
+            <div class="metric">
+                <i class="fa-solid fa-temperature-arrow-up"></i> @printer.BedTemp°C
+            </div>
+            <div class="metric">
+                <i class="fa-solid fa-clock"></i> @(printer.TimeRemainingMinutes)m
+            </div>
+        </div>
+
+        <div class="filament-row">
+            <div class="color-dot" style="background-color: @printer.FilamentColor"></div>
+            <span>@printer.FilamentType</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public required Printer printer { get; set; }
+}

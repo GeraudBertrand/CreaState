@@ -1,0 +1,195 @@
+﻿
+.printer-card {
+    background: var(--bg-card);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s;
+    /* Pour le glassmorphism uniquement */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+    .printer-card:hover {
+        transform: translateY(-5px);
+    }
+
+/* Status Stripe */
+.status-stripe {
+    height: 4px;
+    width: 100%;
+}
+
+    .status-stripe.printing {
+        background-color: #d41a5f;
+    }
+
+    .status-stripe.idle {
+        background-color: #2ecc71;
+    }
+
+    .status-stripe.error {
+        background-color: #f18904;
+    }
+
+    .status-stripe.offline {
+        background-color: #95a5a6;
+    }
+
+/* Card Header */
+.card-header {
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.printer-info .name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    display: block;
+}
+
+.printer-info .model {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+    .badge.printing {
+        background-color: rgba(212, 26, 95, 0.15);
+        color: #d41a5f;
+    }
+
+    .badge.idle {
+        background-color: rgba(46, 204, 113, 0.15);
+        color: #2ecc71;
+    }
+
+    .badge.error {
+        background-color: rgba(241, 137, 4, 0.15);
+        color: #f18904;
+    }
+
+/* Adaptation badge pour Dark & Glass */
+.theme-dark .badge, .theme-glass .badge {
+    color: white;
+}
+
+    .theme-dark .badge.printing {
+        background-color: #d41a5f;
+    }
+
+    .theme-dark .badge.idle {
+        background-color: #2ecc71;
+    }
+
+/* Preview Area */
+.preview-area {
+    background-color: var(--preview-bg);
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    color: var(--text-muted);
+    font-size: 2rem;
+}
+
+.live-tag {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: sans-serif;
+}
+
+    .live-tag .dot {
+        width: 6px;
+        height: 6px;
+        background: red;
+        border-radius: 50%;
+    }
+
+/* Card Body */
+.card-body {
+    padding: 1rem;
+}
+
+/* Progress */
+.progress-section {
+    margin-bottom: 1rem;
+}
+
+.file-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.progress-track {
+    background: var(--preview-bg);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    transition: width 0.5s ease;
+    background-color: #d41a5f;
+}
+
+/* Metrics */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.metric i {
+    color: #0896b5;
+    margin-right: 4px;
+}
+
+.theme-industrial .metric i {
+    color: #f18904;
+}
+/* Orange pour l'indus */
+
+/* Filament */
+.filament-row {
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.5rem;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+}
+
+.color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2);
+}

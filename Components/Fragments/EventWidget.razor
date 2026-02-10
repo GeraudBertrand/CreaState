@@ -1,0 +1,25 @@
+﻿<div class="widget-card event-widget">
+    <div class="widget-title">
+        <span><i class="fa-solid fa-calendar-star"></i> Événement à la une</span>
+    </div>
+
+    <div class="event-content">
+        <i class="fa-solid @Event.IconClass event-main-icon"></i>
+
+        <h4>@Event.Title</h4>
+        <p class="event-desc">@Event.Description</p>
+
+        <div class="countdown-badge @Event.BadgeCssClass">
+            @Event.CountdownLabel
+        </div>
+
+        <div class="event-meta">
+            <span><i class="fa-regular fa-calendar"></i> @Event.Date.ToString("dd MMMM")</span>
+            <span><i class="fa-solid fa-location-dot"></i> @Event.Location</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public required Event Event { get; set; }
+}

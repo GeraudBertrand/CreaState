@@ -1,0 +1,132 @@
+﻿@page "/history"
+
+<PageTitle>Créalab - Historique</PageTitle>
+
+<div class="main-container theme-industrial">
+
+    <header class="page-header">
+        <div class="header-text">
+            <h1>Historique des Impressions</h1>
+            <p>Journal de bord des 30 derniers jours</p>
+        </div>
+        <div class="stats-summary">
+            <div class="stat-box">
+                <span class="stat-value">@TotalWeight kg</span>
+                <span class="stat-label">Filament consommé</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-value">@SuccessRate%</span>
+                <span class="stat-label">Taux de succès</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="table-container">
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>Statut</th>
+                    <th>Fichier</th>
+                    <th>Imprimante</th>
+                    <th>Utilisateur</th>
+                    <th>Date</th>
+                    <th>Durée</th>
+                    <th>Conso.</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var job in PrintJobs.OrderByDescending(j => j.StartTime))
+                {
+                    <tr class="job-row">
+                        <td>
+                            <span class="status-badge @job.StatusCssClass">
+                                @if (job.Status == PrintStatus.Success)
+                                {
+                                    <i class="fa-solid fa-check"></i>
+                                }
+                                else if (job.Status == PrintStatus.Failed)
+                                {
+
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                }
+                                else
+                                {
+
+                                    <i class="fa-solid fa-ban"></i>
+                                }
+                                @job.StatusLabel
+                            </span>
+                        </td>
+                        <td class="file-cell">
+                            <i class="fa-solid fa-file-code file-icon"></i>
+                            <strong>@job.FileName</strong>
+                        </td>
+                        <td>@job.PrinterName</td>
+                        <td>
+                            <div class="user-cell">
+                                <div class="mini-avatar">@job.UserName[0]</div>
+                                @job.UserName
+                            </div>
+                        </td>
+                        <td>@job.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@job.DurationLabel</td>
+                        <td class="weight-cell">@job.FilamentWeightGrams g</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<PrintJob> PrintJobs = new();
+
+    // Stats calculées
+    private double TotalWeight => Math.Round(PrintJobs.Sum(j => j.FilamentWeightGrams) / 1000.0, 2);
+    private int SuccessRate => PrintJobs.Count > 0
+        ? (int)((double)PrintJobs.Count(j => j.Status == PrintStatus.Success) / PrintJobs.Count * 100)
+        : 0;
+
+    protected override void OnInitialized()
+    {
+        LoadMockPrintJob();
+    }
+
+
+    private void LoadMockPrintJob()
+    {
+        PrintJobs = new List<PrintJob>
+        {
+            new PrintJob
+            {
+                Id = 1, FileName = "Boitier_Arduino_V3.gcode", PrinterName = "Bambu A1 - 01", UserName = "Alex D.",
+                StartTime = DateTime.Now.AddHours(-4), Duration = new TimeSpan(3, 45, 0),
+                Status = PrintStatus.Success, FilamentWeightGrams = 120
+            },
+            new PrintJob
+            {
+                Id = 2, FileName = "Dragon_Articulated.gcode", PrinterName = "Bambu X1C", UserName = "Julie M.",
+                StartTime = DateTime.Now.AddDays(-1), Duration = new TimeSpan(8, 20, 0),
+                Status = PrintStatus.Success, FilamentWeightGrams = 240
+            },
+            new PrintJob
+            {
+                Id = 3, FileName = "Support_Casque.3mf", PrinterName = "Bambu A1 - 02", UserName = "Thomas R.",
+                StartTime = DateTime.Now.AddDays(-1).AddHours(-5), Duration = new TimeSpan(0, 45, 0),
+                Status = PrintStatus.Failed, FilamentWeightGrams = 15
+            },
+            new PrintJob
+            {
+                Id = 4, FileName = "Test_Calibration.gcode", PrinterName = "Bambu A1 - 01", UserName = "Admin",
+                StartTime = DateTime.Now.AddDays(-2), Duration = new TimeSpan(0, 15, 0),
+                Status = PrintStatus.Cancelled, FilamentWeightGrams = 5
+            },
+            new PrintJob
+            {
+                Id = 5, FileName = "Cosplay_Epaulette_G.gcode", PrinterName = "Bambu X1C", UserName = "Toi L'étudiant",
+                StartTime = DateTime.Now.AddDays(-3), Duration = new TimeSpan(14, 10, 0),
+                Status = PrintStatus.Success, FilamentWeightGrams = 450
+            },
+        };
+    }
+}

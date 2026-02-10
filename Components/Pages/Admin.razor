@@ -1,0 +1,325 @@
+﻿@page "/admin"
+
+<PageTitle>Créalab - Administration</PageTitle>
+
+<div class="main-container theme-industrial">
+
+    <header class="page-header">
+        <div class="header-text">
+            <h1>Administration</h1>
+            <p>Configuration du parc et communication</p>
+        </div>
+        <!-- Indicateur Statut MQTT (Simulation) -->
+        <div class="system-status">
+            <span class="status-dot online"></span> Serveur MQTT: <strong>Connecté</strong>
+        </div>
+    </header>
+
+    <!-- Navigation par Onglets -->
+    <div class="tabs">
+        <button class="tab-btn @(ActiveTab == "printers" ? "active" : "")"
+                @onclick='() => SetTab("printers")'>
+            <i class="fa-solid fa-print"></i> Parc Machines
+        </button>
+        <button class="tab-btn @(ActiveTab == "comms" ? "active" : "")"
+                @onclick='() => SetTab("comms")'>
+            <i class="fa-solid fa-bullhorn"></i> Communication
+        </button>
+        <button class="tab-btn @(ActiveTab == "users" ? "active" : "")"
+                @onclick='() => SetTab("users")'>
+            <i class="fa-solid fa-users-gear"></i> Utilisateurs
+        </button>
+    </div>
+
+    <div class="tab-content">
+
+        <!-- ONGLET 1 : IMPRIMANTES -->
+        @if (ActiveTab == "printers")
+        {
+            <div class="section-card">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-network-wired"></i> Configuration Réseau Bambu Lab</h3>
+                    <button class="btn btn-sm btn-primary" @onclick="AddNewPrinter">
+                        <i class="fa-solid fa-plus"></i> Ajouter
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Modèle</th>
+                                <th>IP Locale</th>
+                                <th>Access Code</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var p in Printers)
+                            {
+                                <tr>
+                                    <td><input class="form-input" @bind="p.Name" /></td>
+                                    <td>
+                                        <select class="form-select" @bind="p.Model">
+                                            <option value="A1">A1</option>
+                                            <option value="A1 Mini">A1 Mini</option>
+                                            <option value="X1C">X1 Carbon</option>
+                                            <option value="P1S">P1S</option>
+                                        </select>
+                                    </td>
+                                    <td><input class="form-input code-font" @bind="p.IpAddress" placeholder="192.168.1.x" /></td>
+                                    <td>
+                                        <div class="password-input">
+                                            <input type="text" class="form-input code-font" @bind="p.AccessCode" placeholder="Code écran" />
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button class="btn-icon danger" title="Supprimer" @onclick="() => RemovePrinter(p)">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                        <button class="btn-icon success" title="Tester Connexion">
+                                            <i class="fa-solid fa-wifi"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer-info">
+                    <i class="fa-solid fa-circle-info"></i>
+                    N'oubliez pas de fixer les IP dans le routeur DHCP du Fablab pour éviter les déconnexions.
+                </div>
+            </div>
+        }
+
+        <!-- ONGLET 2 : COMMUNICATION -->
+        @if (ActiveTab == "comms")
+        {
+            <div class="comms-grid">
+
+                <!-- Créer une annonce -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-plus"></i> Publier une annonce</h3>
+                    </div>
+                    <div class="form-body">
+                        <div class="form-group">
+                            <label>Titre</label>
+                            <input class="form-input" @bind="NewAnnouncement.Title" placeholder="Ex: Fermeture exceptionnelle..." />
+                        </div>
+                        <div class="form-group">
+                            <label>Message</label>
+                            <textarea class="form-textarea" @bind="NewAnnouncement.Message" rows="3"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Type</label>
+                                <select class="form-select" @bind="NewAnnouncement.Severity">
+                                    <option value="@AnnouncementSeverity.Info">Info (Bleu)</option>
+                                    <option value="@AnnouncementSeverity.Warning">Attention (Orange)</option>
+                                    <option value="@AnnouncementSeverity.Danger">Urgent (Rouge)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Durée (Jours)</label>
+                                <input type="number" class="form-input" @bind="DurationDays" min="1" max="30" />
+                            </div>
+                        </div>
+                        <button class="btn btn-primary w-100" @onclick="PublishAnnouncement">
+                            Publier maintenant
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Liste des annonces actives -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="fa-solid fa-clock-rotate-left"></i> Annonces Actives</h3>
+                    </div>
+                    <ul class="active-list">
+                        @foreach (var ann in Announcements.Where(a => a.IsActive))
+                        {
+                            <li class="list-item">
+                                <div class="item-info">
+                                    <span class="badge-dot @ann.Severity.ToString().ToLower()"></span>
+                                    <strong>@ann.Title</strong>
+                                    <span class="text-muted">Fin : @ann.ExpirationDate.ToString("dd/MM")</span>
+                                </div>
+                                <button class="btn-icon danger" @onclick="() => DeleteAnnouncement(ann)">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </li>
+                        }
+                        @if (!Announcements.Any(a => a.IsActive))
+                        {
+                            <li class="empty-state">Aucune annonce en cours</li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
+        <!-- ONGLET 3 : UTILISATEURS (Simulé) -->
+        @if (ActiveTab == "users")
+        {
+            <div class="section-card">
+                <div class="card-header">
+                    <h3>Gestion des accès</h3>
+                </div>
+                <div style="padding: 2rem; text-align: center; color: #95a5a6;">
+                    <i class="fa-solid fa-person-digging fa-3x"></i>
+                    <p style="margin-top: 1rem;">La gestion des rôles (Bureau/Membre) sera implémentée avec la base de données SQL.</p>
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+
+@code {
+    private string ActiveTab = "printers";
+
+    // Données (Références vers les Mocks pour l'instant)
+    private List<Printer> Printers;
+    private List<Announcement> Announcements;
+
+    // Modèle pour le formulaire d'annonce
+    private Announcement NewAnnouncement = new();
+    private int DurationDays = 3;
+
+    protected override void OnInitialized()
+    {
+        LoadMockData();
+    }
+
+    private void SetTab(string tab) => ActiveTab = tab;
+
+    // --- Logique Imprimantes ---
+    private void AddNewPrinter()
+    {
+        Printers.Add(new Printer { Name = "Nouvelle Imprimante", IpAddress = "0.0.0.0" });
+    }
+
+    private void RemovePrinter(Printer p)
+    {
+        Printers.Remove(p);
+    }
+
+    // --- Logique Annonces ---
+    private void PublishAnnouncement()
+    {
+        if (string.IsNullOrWhiteSpace(NewAnnouncement.Title)) return;
+
+        NewAnnouncement.Id = Announcements.Count + 1;
+        NewAnnouncement.PublishDate = DateTime.Now;
+        NewAnnouncement.DisplayDuration = TimeSpan.FromDays(DurationDays);
+
+        // Ajout à la liste (en mémoire)
+        Announcements.Add(NewAnnouncement);
+
+        // Reset formulaire
+        NewAnnouncement = new Announcement();
+        DurationDays = 3;
+    }
+
+    private void DeleteAnnouncement(Announcement a)
+    {
+        Announcements.Remove(a);
+    }
+
+    private void LoadMockData()
+    {
+        Printers = new List<Printer>
+        {
+            new Printer {
+                Name = "Bambu A1 - 01",
+                Model = "A1",
+                Status = PrinterStatus.Printing,
+                Progress = 72,
+                CurrentFile = "IronMan_Helmet.gcode",
+                NozzleTemp = 215,
+                BedTemp = 60,
+                TimeRemainingMinutes = 45,
+                FilamentColor = "#d41a5f", // Magenta
+                FilamentType = "PLA Matte"
+            },
+            new Printer {
+                Name = "Bambu A1 - 02",
+                Model = "A1",
+                IpAddress = "192.168.1.51",
+                Status = PrinterStatus.Idle,
+                Progress = 0,
+                NozzleTemp = 25,
+                BedTemp = 22,
+                FilamentColor = "#0896b5", // Bleu
+                FilamentType = "PETG"
+            },
+            new Printer {
+                Name = "La X1 Carbon",
+                Model = "X1C",
+                IpAddress = "192.168.1.60",
+                Status = PrinterStatus.Printing,
+                Progress = 15,
+                CurrentFile = "Calibration_Flow.gcode",
+                NozzleTemp = 240,
+                BedTemp = 35,
+                TimeRemainingMinutes = 120,
+                FilamentColor = "#333333",
+                FilamentType = "PLA-CF"
+            },
+            new Printer {
+                Name = "Bambu A1 Mini",
+                Model = "A1 Mini",
+                Status = PrinterStatus.Error,
+                Progress = 45,
+                CurrentFile = "Echec.gcode",
+                FilamentColor = "#f18904", // Orange
+                FilamentType = "PLA"
+            }
+        };
+        Announcements = new List<Announcement>
+        {
+            new Announcement
+            {
+                Id = 1,
+                Title = "Fermeture exceptionnelle",
+                Message = "Le Fablab fermera ses portes plus tôt ce vendredi (17h00) pour l'inventaire trimestriel. Merci de libérer les établis.",
+                Severity = AnnouncementSeverity.Danger,
+                PublishDate = DateTime.Now.AddDays(-1),
+                DisplayDuration = TimeSpan.FromDays(3)
+            },
+
+            new Announcement
+            {
+                Id = 2,
+                Title = "Maintenance CNC",
+                Message = "La fraiseuse numérique est en cours de calibrage suite à un changement de broche. Indisponible jusqu'à nouvel ordre.",
+                Severity = AnnouncementSeverity.Warning,
+                PublishDate = DateTime.Now.AddHours(-4),
+                DisplayDuration = TimeSpan.FromHours(48)
+            },
+
+            new Announcement
+            {
+                Id = 3,
+                Title = "Arrivage de PLA",
+                Message = "Nous avons reçu les nouvelles bobines (PLA Mat & PETG) ! N'oubliez pas de peser vos impressions.",
+                Severity = AnnouncementSeverity.Info,
+                PublishDate = DateTime.Now.AddDays(-2),
+                DisplayDuration = TimeSpan.FromDays(7)
+            },
+
+            new Announcement
+            {
+                Id = 4,
+                Title = "Pizza Party de rentrée",
+                Message = "C'était sympa !",
+                Severity = AnnouncementSeverity.Info,
+                PublishDate = DateTime.Now.AddDays(-10),
+                DisplayDuration = TimeSpan.FromDays(1)
+            }
+        };
+    }
+}

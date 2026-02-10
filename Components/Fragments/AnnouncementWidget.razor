@@ -1,0 +1,17 @@
+﻿<div class="widget-card announcement @announcement.CssClass animate-pop">
+    <div class="widget-title">
+        <span>
+            <i class="fa-solid @announcement.IconClass"></i> @announcement.Title
+        </span>
+    </div>
+    <div class="announcement-content">
+        <p>@announcement.Message</p>
+        <small class="publish-date">
+            Publié le @announcement.PublishDate.ToString("dd/MM")
+        </small>
+    </div>
+</div>
+
+@code {
+    [Parameter] public required Announcement announcement{ get; set; }
+}

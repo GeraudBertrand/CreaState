@@ -1,0 +1,156 @@
+﻿
+
+/* --- Header & Stats --- */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-text h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: var(--text-main, #2c3e50);
+}
+
+.header-text p {
+    margin: 5px 0 0;
+    color: var(--text-muted, #95a5a6);
+}
+
+.stats-summary {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-box {
+    background: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e1e8ed);
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--primary-blue, #0896b5);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted, #95a5a6);
+    text-transform: uppercase;
+}
+
+/* --- Table --- */
+.table-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    border: 1px solid var(--border-color, #e1e8ed);
+    overflow-x: auto; /* Scroll horizontal si tableau trop large */
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px; /* Force une largeur mini pour éviter l'écrasement */
+}
+
+    .history-table th {
+        text-align: left;
+        padding: 1rem;
+        background-color: var(--bg-app, #f8f9fa);
+        color: var(--text-muted, #95a5a6);
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border-color, #e1e8ed);
+    }
+
+    .history-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color, #f1f3f5);
+        color: var(--text-main, #2c3e50);
+        font-size: 0.9rem;
+    }
+
+.job-row:last-child td {
+    border-bottom: none;
+}
+
+.job-row:hover {
+    background-color: #f8f9fa;
+}
+
+/* --- Cellules Spécifiques --- */
+
+/* File */
+.file-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.file-icon {
+    color: var(--text-muted, #95a5a6);
+}
+
+/* User */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mini-avatar {
+    width: 24px;
+    height: 24px;
+    background-color: var(--primary-blue, #0896b5);
+    color: white;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Weight */
+.weight-cell {
+    font-family: monospace;
+    font-weight: 600;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+}
+
+.status-success {
+    background-color: #e8f8f5;
+    color: #2ecc71;
+}
+
+.status-failed {
+    background-color: #fce4ec;
+    color: #e74c3c;
+}
+/* Rouge échec */
+.status-cancelled {
+    background-color: #f1f3f5;
+    color: #95a5a6;
+}
+/* Gris annulé */

@@ -1,0 +1,100 @@
+﻿@page "/printers"
+
+
+<PageTitle>Créalab Monitor</PageTitle>
+
+<div class="main-container theme-industrial">
+    <header class="header">
+        <div class="titles">
+            <h1>État du Parc</h1>
+            <p>Supervision en temps réel des Bambu Lab</p>
+        </div>
+    </header>
+
+    @if (Imprimantes == null)
+    {
+        <div class="state-message">
+            <div class="spinner"></div>
+            <p>Connexion aux imprimantes...</p>
+        </div>
+    }
+    else if (Imprimantes.Count == 0)
+    {
+        <div class="state-message empty">
+            <i class="fa-solid fa-server"></i>
+            <h3>Aucune imprimante détectée</h3>
+            <p>Le parc est vide ou le serveur MQTT est éteint.</p>
+        </div>
+    }
+    else
+    {
+        <div class="printer-grid">
+            @foreach (var printer in Imprimantes)
+            {
+                <PrinterCard printer="@printer" />
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Printer>? Imprimantes;
+
+    protected override void OnInitialized()
+    {
+        LoadMockData();
+    }
+
+
+    private void LoadMockData()
+    {
+        Imprimantes = new List<Printer>
+        {
+            new Printer {
+                Name = "Bambu A1 - 01",
+                Model = "A1",
+                Status = PrinterStatus.Printing,
+                Progress = 72,
+                CurrentFile = "IronMan_Helmet.gcode",
+                NozzleTemp = 215,
+                BedTemp = 60,
+                TimeRemainingMinutes = 45,
+                FilamentColor = "#d41a5f", // Magenta
+                FilamentType = "PLA Matte"
+            },
+            new Printer {
+                Name = "Bambu A1 - 02",
+                Model = "A1",
+                IpAddress = "192.168.1.51",
+                Status = PrinterStatus.Idle,
+                Progress = 0,
+                NozzleTemp = 25,
+                BedTemp = 22,
+                FilamentColor = "#0896b5", // Bleu
+                FilamentType = "PETG"
+            },
+            new Printer {
+                Name = "La X1 Carbon",
+                Model = "X1C",
+                IpAddress = "192.168.1.60",
+                Status = PrinterStatus.Printing,
+                Progress = 15,
+                CurrentFile = "Calibration_Flow.gcode",
+                NozzleTemp = 240,
+                BedTemp = 35,
+                TimeRemainingMinutes = 120,
+                FilamentColor = "#333333",
+                FilamentType = "PLA-CF"
+            },
+            new Printer {
+                Name = "Bambu A1 Mini",
+                Model = "A1 Mini",
+                Status = PrinterStatus.Error,
+                Progress = 45,
+                CurrentFile = "Echec.gcode",
+                FilamentColor = "#f18904", // Orange
+                FilamentType = "PLA"
+            }
+        };
+    }
+}

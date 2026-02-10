@@ -1,0 +1,94 @@
+﻿.theme-industrial {
+    --bg-app: #e9ecef;
+    --bg-card: #dee2e6;
+    --text-main: #212529;
+    --text-muted: #495057;
+    --border-color: #343a40;
+    --shadow: 4px 4px 0px #343a40;
+    --preview-bg: #ced4da;
+    --font-family: 'Courier New', monospace;
+    --radius: 0px;
+}
+
+
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+    .header h1 {
+        margin: 0;
+        color: var(--text-main);
+        font-weight: 800;
+    }
+
+    .header p {
+        margin: 0;
+        color: var(--text-muted);
+    }
+
+.controls {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.theme-switcher {
+    background: var(--bg-card);
+    padding: 5px;
+    border-radius: 8px;
+    display: flex;
+    gap: 5px;
+    border: 1px solid var(--border-color);
+}
+
+.btn-theme {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+    .btn-theme:hover {
+        background: rgba(0,0,0,0.05);
+    }
+
+    .btn-theme.active {
+        background: #0896b5;
+        color: white;
+    }
+
+.btn {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background-color: #0896b5;
+    color: white;
+}
+
+.btn-outline {
+    border: 1px solid #0896b5;
+    color: #0896b5;
+    background: transparent;
+}
+
+
+.printer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+}
