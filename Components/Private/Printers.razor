@@ -1,6 +1,9 @@
-﻿@page "/printers"
+﻿@page "/private/printers"
+@layout PrivateLayout
 
 @inject PageHeaderService HeaderService
+@inject PrinterService PrinterService
+@implements IDisposable
 
 <PageTitle>Créalab Monitor</PageTitle>
 
@@ -38,9 +41,21 @@
     protected override void OnInitialized()
     {
         HeaderService.SetTitle("État du Parc", "Supervision en temps réel des Bambu Lab");
-        LoadMockData();
+        Imprimantes = PrinterService.GetPrinters();
+        PrinterService.OnChange += RefreshUI;
     }
 
+    private void RefreshUI()
+    {
+        // On demande à Blazor de redessiner la page car les données ont changé (ex: % +1)
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        // CRITIQUE : Se désabonner quand on quitte la page pour éviter les fuites de mémoire
+        PrinterService.OnChange -= RefreshUI;
+    }
 
     private void LoadMockData()
     {

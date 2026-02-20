@@ -1,0 +1,137 @@
+﻿@page "/public/contact"
+
+<PageTitle>Contact - Créalab ESILV Nantes</PageTitle>
+
+<div class="main-container theme-industrial">
+    <header class="public-header text-center">
+        <h1>Contactez le Créalab</h1>
+        <p>Une question, un projet ou une proposition de partenariat ? Écrivez-nous !</p>
+    </header>
+
+    <div class="contact-grid">
+        <!-- Colonne de gauche : Informations -->
+        <div class="contact-info card-clean">
+            <h3><i class="fa-solid fa-location-dot"></i> Où nous trouver ?</h3>
+            <p>
+                <strong>Créalab ESILV - Campus de Nantes</strong><br />
+                (Préciser ici le numéro de la salle ou le bâtiment)
+            </p>
+
+            <h3 class="mt-4"><i class="fa-solid fa-envelope"></i> Nous écrire</h3>
+            <p>contact@crealab-nantes.fr</p>
+
+            <h3 class="mt-4"><i class="fa-solid fa-handshake"></i> Partenariats Entreprises</h3>
+            <p class="partnership-text">
+                En tant qu'association étudiante de création, le Créalab est toujours à la recherche de partenaires pour nous aider à améliorer notre parc machine (Imprimantes 3D, Imprimante Résine, Découpeuse Laser, CNC) ou fournir des consommables (PLA, Résine, Bois, Composants électroniques).
+                <br /><br />
+                <em>- Le Responsable Partenariat</em>
+            </p>
+
+            <div class="social-links mt-4">
+                <a href="#" class="social-btn"><i class="fa-brands fa-linkedin"></i></a>
+                <a href="#" class="social-btn"><i class="fa-brands fa-instagram"></i></a>
+                <a href="#" class="social-btn"><i class="fa-brands fa-discord"></i></a>
+            </div>
+        </div>
+
+        <!-- Colonne de droite : Formulaire -->
+        <div class="contact-form card-clean">
+            <h3>Envoyer un message</h3>
+            <hr class="divider" />
+
+            @if (IsSubmitted)
+            {
+                <div class="alert-success animate-fade-in">
+                    <i class="fa-solid fa-circle-check fa-2x"></i>
+                    <div>
+                        <h4>Message envoyé !</h4>
+                        <p>Merci de nous avoir contactés. L'équipe du Créalab vous répondra dans les plus brefs délais.</p>
+                        <button class="btn-outline-primary mt-2" @onclick="ResetForm">Envoyer un autre message</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- EditForm est le composant Blazor officiel pour gérer les formulaires -->
+                <EditForm Model="@ContactModel" OnValidSubmit="HandleValidSubmit">
+                    <!-- Active la validation basée sur les attributs [Required], [EmailAddress], etc. -->
+                    <DataAnnotationsValidator />
+
+                    <div class="form-group">
+                        <label>Nom & Prénom / Entreprise</label>
+                        <InputText @bind-Value="ContactModel.Name" class="form-control" placeholder="Ex: Jean Dupont ou XLConcept" />
+                        <ValidationMessage For="@(() => ContactModel.Name)" class="text-danger" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Adresse Email</label>
+                        <InputText @bind-Value="ContactModel.Email" type="email" class="form-control" placeholder="prenom.nom@edu.devinci.fr" />
+                        <ValidationMessage For="@(() => ContactModel.Email)" class="text-danger" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sujet de votre demande</label>
+                        <InputSelect @bind-Value="ContactModel.Subject" class="form-control">
+                            <option value="">-- Sélectionnez un sujet --</option>
+                            <option value="Technique">Demande concernant un aspect technique</option>
+                            <option value="Adhesion">Rejoindre l'association</option>
+                            <option value="Partenariat">Proposition de partenariat (Sponsoring/Matériel)</option>
+                            <option value="Autre">Autre demande</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => ContactModel.Subject)" class="text-danger" />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Votre Message</label>
+                        <InputTextArea @bind-Value="ContactModel.Message" rows="1" class="form-control" placeholder="Détaillez votre projet ou votre proposition ici..." />
+                        <ValidationMessage For="@(() => ContactModel.Message)" class="text-danger" />
+                    </div>
+
+                    <button type="submit" class="btn-primary mt-3 w-100">
+                        <i class="fa-solid fa-paper-plane"></i> Envoyer le message
+                    </button>
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    // Le modèle de données lié au formulaire
+    private ContactFormModel ContactModel = new();
+    private bool IsSubmitted = false;
+
+    private void HandleValidSubmit()
+    {
+        // --- SIMULATION D'ENVOI D'EMAIL ---
+        // Dans le futur, tu utiliseras ici un service d'envoi d'email (ex: MailKit, SendGrid, ou l'API de Microsoft Graph)
+        Console.WriteLine($"[CONTACT] Nouveau message de {ContactModel.Name} ({ContactModel.Email}) - Sujet: {ContactModel.Subject}");
+
+        // On affiche le message de succès
+        IsSubmitted = true;
+    }
+
+    private void ResetForm()
+    {
+        ContactModel = new ContactFormModel();
+        IsSubmitted = false;
+    }
+
+    // Classe interne pour définir les règles de validation du formulaire
+    public class ContactFormModel
+    {
+        [Required(ErrorMessage = "Veuillez indiquer votre nom.")]
+        public string Name { get; set; } = "";
+
+        [Required(ErrorMessage = "L'adresse email est obligatoire.")]
+        [EmailAddress(ErrorMessage = "Le format de l'email n'est pas valide.")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Veuillez sélectionner un sujet.")]
+        public string Subject { get; set; } = "";
+
+        [Required(ErrorMessage = "Votre message ne peut pas être vide.")]
+        [MinLength(15, ErrorMessage = "Votre message est trop court (min. 15 caractères).")]
+        public string Message { get; set; } = "";
+    }
+}

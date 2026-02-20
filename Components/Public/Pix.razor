@@ -1,0 +1,222 @@
+﻿@page "/public/pix"
+@layout PublicLayout
+
+
+<PageTitle>Demande PIX - Créalab</PageTitle>
+
+<div class="main-container theme-industrial">
+    <header class="public-header">
+        <div class="title-row">
+            <h1>Ticket d'Impression PIX</h1>
+            <div class="hero-badge">Projets Académiques</div>
+        </div>
+        <p>Soumission prioritaire pour les Projets d'Innovation et d'eXploration. <br />Vous devez fournir un fichier <strong>déjà tranché (.gcode)</strong>.</p>
+    </header>
+
+    <div class="ticket-wrapper">
+        <div class="ticket-card card-clean">
+
+            <div class="ticket-layout">
+
+                <!-- COLONNE DROITE SUR PC / EN HAUT SUR MOBILE : RÈGLES ET INFOS -->
+                <!-- Placée en premier dans le HTML (DOM) pour l'accessibilité et la logique Mobile First -->
+                <aside class="ticket-sidebar">
+                    <div class="rules-alert alert-pix">
+                        <i class="fa-solid fa-graduation-cap fa-2x"></i>
+                        <div class="rules-content">
+                            <strong>Modalités PIX :</strong>
+                            <ul class="rules-list">
+                                <li>Fichier <b>.GCODE obligatoire</b> (Tranché via Bambu Studio).</li>
+                                <li>Vérifiez attentivement vos températures et l'activation des supports.</li>
+                                <li>Le fichier partira en impression <i>tel quel</i>, sans vérification du bureau.</li>
+                                <li>Taille maximale du fichier : 50 Mo.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- COLONNE GAUCHE SUR PC / EN BAS SUR MOBILE : LE FORMULAIRE -->
+                <div class="ticket-main">
+                    @if (IsSubmitted)
+                    {
+                        <div class="alert-success animate-fade-in text-center" style="padding: 2rem;">
+                            <i class="fa-solid fa-rocket fa-4x" style="color: var(--primary-blue); margin-bottom: 1rem;"></i>
+                            <h3>Ticket PIX #CR-@RandomTicketNumber enregistré !</h3>
+                            <p>Votre G-Code a été transmis directement à la file d'attente des imprimantes. Surveillez vos emails pour la notification de fin d'impression.</p>
+                            <button class="btn-primary mt-3" @onclick="ResetForm">Soumettre une autre pièce</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="@TicketModel" OnValidSubmit="HandleValidSubmit">
+                            <DataAnnotationsValidator />
+
+                            <div class="form-row">
+                                <div class="form-group half-width">
+                                    <label>Nom du Référent (Étudiant)</label>
+                                    <InputText @bind-Value="TicketModel.StudentName" class="form-control" placeholder="Ex: Lucas P." />
+                                    <ValidationMessage For="@(() => TicketModel.StudentName)" class="text-danger" />
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Numéro ou Nom du Groupe PIX</label>
+                                    <InputText @bind-Value="TicketModel.PixGroup" class="form-control" placeholder="Ex: PIX_2024_G12" />
+                                    <ValidationMessage For="@(() => TicketModel.PixGroup)" class="text-danger" />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Email ESILV (Pour la notification)</label>
+                                <InputText @bind-Value="TicketModel.Email" type="email" class="form-control" placeholder="prenom.nom@edu.devinci.fr" />
+                                <ValidationMessage For="@(() => TicketModel.Email)" class="text-danger" />
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group half-width">
+                                    <label>Matériau paramétré dans le G-Code</label>
+                                    <InputSelect @bind-Value="TicketModel.MaterialPref" class="form-control">
+                                        <option value="">-- Sélectionnez le filament --</option>
+                                        <option value="PLA">PLA Standard (Recommandé)</option>
+                                        <option value="PETG">PETG (Pièces mécaniques)</option>
+                                        <option value="ABS">ABS / ASA (Haute température)</option>
+                                        <option value="TPU">TPU (Flexible)</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => TicketModel.MaterialPref)" class="text-danger" />
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Couleur souhaitée (selon stock)</label>
+                                    <InputSelect @bind-Value="TicketModel.ColorPref" class="form-control">
+                                        <option value="Peu importe">Peu importe (Plus rapide)</option>
+                                        <option value="Noir">Noir</option>
+                                        <option value="Blanc">Blanc</option>
+                                        <option value="Gris">Gris</option>
+                                    </InputSelect>
+                                </div>
+                            </div>
+
+                            <!-- UPLOAD DE FICHIER (.gcode uniquement) -->
+                            <div class="form-group mt-2 file-upload-group">
+                                <label>Fichier tranché (.gcode uniquement)</label>
+                                <div class="file-drop-area @(UploadedFile != null ? (FileError == null ? "file-selected" : "file-error") : "")">
+                                    <InputFile OnChange="HandleFileSelected" accept=".gcode" id="fileInput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" />
+
+                                    @if (UploadedFile == null)
+                                    {
+                                        <i class="fa-solid fa-file-code fa-2x"></i>
+                                        <span>Glissez votre fichier .GCODE ici</span>
+                                        <small>Max 50 Mo</small>
+                                    }
+                                    else
+                                    {
+                                        <i class="fa-solid @(FileError == null ? "fa-file-circle-check" : "fa-file-circle-xmark") fa-2x"
+                                           style="color: @(FileError == null ? "var(--status-success)" : "var(--status-error)");"></i>
+                                        <span class="file-name-display">@UploadedFile.Name</span>
+                                        <small>@Math.Round(UploadedFile.Size / 1024.0 / 1024.0, 2) Mo</small>
+                                    }
+                                </div>
+                                @if (FileError != null)
+                                {
+                                    <span class="text-danger mt-1"><i class="fa-solid fa-triangle-exclamation"></i> @FileError</span>
+                                }
+                            </div>
+
+                            <div class="form-group checkbox-group mt-2">
+                                <InputCheckbox @bind-Value="TicketModel.TermsAccepted" id="terms" />
+                                <label for="terms">J'atteste avoir vérifié mon G-Code dans le slicer (temps d'impression, supports, adhésion plateau). Le Créalab n'est pas responsable en cas d'échec lié au tranchage.</label>
+                                <ValidationMessage For="@(() => TicketModel.TermsAccepted)" class="text-danger" />
+                            </div>
+
+                            <button type="submit" class="btn-primary mt-2 w-100 btn-large">
+                                <i class="fa-solid fa-paper-plane"></i> Envoyer pour impression
+                            </button>
+                        </EditForm>
+                    }
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private PixTicketModel TicketModel = new();
+    private IBrowserFile? UploadedFile;
+    private bool IsSubmitted = false;
+    private string? FileError;
+    private int RandomTicketNumber = 0;
+
+    private const long MaxFileSize = 1024 * 1024 * 50; // 50 Mo
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        FileError = null;
+        var file = e.File;
+
+        // Validation 1 : La taille
+        if (file.Size > MaxFileSize)
+        {
+            FileError = "Le fichier dépasse la limite autorisée de 50 Mo.";
+            UploadedFile = file; // On le garde pour afficher le nom en rouge
+            return;
+        }
+
+        // Validation 2 (Spécifique PIX) : L'extension
+        var extension = System.IO.Path.GetExtension(file.Name);
+        if (!string.Equals(extension, ".gcode", StringComparison.OrdinalIgnoreCase))
+        {
+            FileError = "Seuls les fichiers .gcode sont acceptés pour les PIX. Veuillez trancher votre STL avec Bambu Studio.";
+            UploadedFile = file;
+            return;
+        }
+
+        UploadedFile = file;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // On revérifie au submit (sécurité côté serveur)
+        if (UploadedFile == null || FileError != null)
+        {
+            if (UploadedFile == null) FileError = "Veuillez joindre votre fichier .gcode.";
+            return;
+        }
+
+        if (!TicketModel.TermsAccepted) return;
+
+        // --- SIMULATION ---
+        await Task.Delay(1000);
+
+        RandomTicketNumber = new Random().Next(1000, 9999);
+        IsSubmitted = true;
+    }
+
+    private void ResetForm()
+    {
+        TicketModel = new PixTicketModel();
+        UploadedFile = null;
+        FileError = null;
+        IsSubmitted = false;
+    }
+
+    // Modèle de validation adapté aux PIX
+    public class PixTicketModel
+    {
+        [Required(ErrorMessage = "Le nom du référent est requis.")]
+        public string StudentName { get; set; } = "";
+
+        [Required(ErrorMessage = "L'email est requis.")]
+        [EmailAddress(ErrorMessage = "Email invalide.")]
+        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@edu\.devinci\.fr$", ErrorMessage = "Utilisez votre adresse @edu.devinci.fr")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Le nom ou numéro du groupe PIX est requis.")]
+        public string PixGroup { get; set; } = "";
+
+        [Required(ErrorMessage = "Précisez le matériau paramétré.")]
+        public string MaterialPref { get; set; } = "";
+
+        public string ColorPref { get; set; } = "Peu importe";
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Vous devez valider votre responsabilité sur le tranchage.")]
+        public bool TermsAccepted { get; set; }
+    }
+}

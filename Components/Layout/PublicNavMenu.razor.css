@@ -1,0 +1,81 @@
+﻿/* --- SIDEBAR (Styles extraits de ta maquette) --- */
+.sidebar {
+    width: 260px;
+    background-color: white;
+    border-right: 1px solid var(--border-light, #e1e8ed);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    flex-shrink: 0;
+    height: 100vh; /* S'assure que le menu prend toute la hauteur */
+}
+
+.logo-area {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary-blue, #0896b5);
+    margin-bottom: 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+    .logo-area i {
+        color: var(--accent-magenta, #d41a5f);
+    }
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0;
+    margin: 0;
+}
+
+/* ::deep permet d'appliquer le style aux composants enfants (NavLink génère un <a>) */
+.nav-item {
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    color: var(--text-muted, #95a5a6);
+    text-decoration: none;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+    .nav-item:hover {
+        background-color: #f0f8fa;
+        color: var(--primary-blue, #0896b5);
+    }
+
+    /* Blazor ajoute automatiquement la classe "active" sur le lien courant */
+    .nav-item.active {
+        background-color: var(--primary-blue, #0896b5);
+        color: white;
+        box-shadow: 0 4px 12px rgba(8, 150, 181, 0.3);
+    }
+
+/* Responsive : Adaptation mobile simple */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-light, #e1e8ed);
+        padding: 1rem;
+    }
+
+    .nav-links {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 5px; /* Espace pour le scrollbar si besoin */
+    }
+
+    .nav-item {
+        white-space: nowrap; /* Empêche le texte de revenir à la ligne */
+    }
+}

@@ -1,0 +1,225 @@
+﻿@page "/public/request"
+
+<PageTitle>Demande d'impression - Créalab</PageTitle>
+
+<div class="main-container theme-industrial">
+    <header class="public-header text-center">
+        <h1>Créer un Ticket d'Impression</h1>
+        <p>Soumettez votre fichier 3D ou Laser. Nos responsables techniques valideront la faisabilité avant de lancer la machine.</p>
+    </header>
+
+    <div class="ticket-wrapper">
+        <div class="ticket-card card-clean">
+
+            <div class="ticket-layout">
+
+                <!-- COLONNE DROITE SUR PC / EN HAUT SUR MOBILE : RÈGLES ET INFOS -->
+                <aside class="ticket-sidebar">
+                    <div class="rules-alert">
+                        <i class="fa-solid fa-circle-info fa-2x"></i>
+                        <div class="rules-content">
+                            <strong>Règles du Fablab :</strong>
+                            <ul class="rules-list">
+                                <li>Assurez-vous que votre pièce est "Manifold" (sans trous).</li>
+                                <li>Privilégiez le format <b>.STL</b> ou <b>.3MF</b> pour la 3D, et <b>.DXF</b> pour la Laser.</li>
+                                <li>Taille maximale du fichier : 50 Mo.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- COLONNE GAUCHE SUR PC / EN BAS SUR MOBILE : LE FORMULAIRE -->
+                <div class="ticket-main">
+                    @if (IsSubmitted)
+                    {
+                        <div class="alert-success animate-fade-in text-center" style="padding: 2rem;">
+                            <i class="fa-solid fa-ticket fa-4x" style="color: var(--primary-blue); margin-bottom: 1rem;"></i>
+                            <h3>Ticket #CR-@RandomTicketNumber généré avec succès !</h3>
+                            <p>Votre demande a été envoyée au bureau. Vous recevrez un email dès que votre pièce sera prête ou si nous avons besoin de modifier les paramètres d'impression.</p>
+                            <button class="btn-primary mt-4" @onclick="ResetForm">Nouvelle demande</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="@TicketModel" OnValidSubmit="HandleValidSubmit">
+                            <DataAnnotationsValidator />
+
+                            <div class="form-row">
+                                <div class="form-group half-width">
+                                    <label>Nom de l'étudiant</label>
+                                    <InputText @bind-Value="TicketModel.StudentName" class="form-control" placeholder="Ex: Thomas R." />
+                                    <ValidationMessage For="@(() => TicketModel.StudentName)" class="text-danger" />
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Email ESILV</label>
+                                    <InputText @bind-Value="TicketModel.Email" type="email" class="form-control" placeholder="prenom.nom@edu.devinci.fr" />
+                                    <ValidationMessage For="@(() => TicketModel.Email)" class="text-danger" />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Nom du Projet</label>
+                                <InputText @bind-Value="TicketModel.ProjectName" class="form-control" placeholder="Ex: Boitier IoT, Épaulette Cosplay..." />
+                                <ValidationMessage For="@(() => TicketModel.ProjectName)" class="text-danger" />
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group half-width">
+                                    <label>Technologie souhaitée</label>
+                                    <InputSelect @bind-Value="TicketModel.Technology" class="form-control">
+                                        <option value="">-- Choix --</option>
+                                        <option value="FDM">Impression 3D (FDM - Filament)</option>
+                                        <option value="SLA">Impression Résine (Haute précision)</option>
+                                        <option value="Laser">Découpeuse Laser</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => TicketModel.Technology)" class="text-danger" />
+                                </div>
+                                <div class="form-group half-width">
+                                    <label>Couleur / Matériau préféré</label>
+                                    <InputSelect @bind-Value="TicketModel.MaterialPref" class="form-control">
+                                        <option value="Peu importe">Peu importe (Le plus rapide)</option>
+                                        <option value="PLA Noir">PLA Noir</option>
+                                        <option value="PLA Blanc">PLA Blanc</option>
+                                        <option value="PLA Gris">PLA Gris</option>
+                                        <option value="PETG">PETG (Plus résistant)</option>
+                                    </InputSelect>
+                                </div>
+                            </div>
+
+                            <div class="form-group mt-2">
+                                <label>Détails / Instructions spécifiques</label>
+                                <InputTextArea @bind-Value="TicketModel.Description" rows="2" class="form-control" placeholder="Ex: Remplissage à 20%, besoin de supports..." />
+                                <ValidationMessage For="@(() => TicketModel.Description)" class="text-danger" />
+                            </div>
+
+                            <!-- UPLOAD DE FICHIER -->
+                            <div class="form-group mt-2 file-upload-group">
+                                <label>Fichier à produire (.stl, .3mf, .dxf)</label>
+                                <div class="file-drop-area @(UploadedFile != null ? (FileError == null ? "file-selected" : "file-error") : "")">
+                                    <InputFile OnChange="HandleFileSelected" accept=".stl,.3mf,.dxf,.obj" id="fileInput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" />
+
+                                    @if (UploadedFile == null)
+                                    {
+                                        <i class="fa-solid fa-cloud-arrow-up fa-2x"></i>
+                                        <span>Cliquez ou glissez votre fichier ici</span>
+                                        <small>Max 50 Mo</small>
+                                    }
+                                    else
+                                    {
+                                        <i class="fa-solid @(FileError == null ? "fa-file-circle-check" : "fa-file-circle-xmark") fa-2x"
+                                           style="color: @(FileError == null ? "var(--status-success)" : "var(--status-error)");"></i>
+                                        <span class="file-name-display">@UploadedFile.Name</span>
+                                        <small>@Math.Round(UploadedFile.Size / 1024.0 / 1024.0, 2) Mo</small>
+                                    }
+                                </div>
+                                @if (FileError != null)
+                                {
+                                    <span class="text-danger mt-1"><i class="fa-solid fa-triangle-exclamation"></i> @FileError</span>
+                                }
+                            </div>
+
+                            <div class="form-group checkbox-group mt-2">
+                                <InputCheckbox @bind-Value="TicketModel.TermsAccepted" id="terms" />
+                                <label for="terms">Je confirme que ce fichier est prêt à être produit et respecte le règlement du Fablab.</label>
+                                <ValidationMessage For="@(() => TicketModel.TermsAccepted)" class="text-danger" />
+                            </div>
+
+                            <button type="submit" class="btn-primary mt-2 w-100 btn-large">
+                                <i class="fa-solid fa-ticket"></i> Soumettre le ticket
+                            </button>
+                        </EditForm>
+                    }
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private PrintTicketModel TicketModel = new();
+    private IBrowserFile? UploadedFile;
+    private bool IsSubmitted = false;
+    private string? FileError;
+    private int RandomTicketNumber = 0;
+
+    private const long MaxFileSize = 1024 * 1024 * 50; // 50 Mo
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        FileError = null;
+        var file = e.File;
+
+        // Validation 1 : La taille
+        if (file.Size > MaxFileSize)
+        {
+            FileError = "Le fichier dépasse la limite autorisée de 50 Mo.";
+            UploadedFile = file; // On garde la réf pour afficher l'erreur en rouge
+            return;
+        }
+
+        // Validation 2 : Extensions autorisées
+        var extension = System.IO.Path.GetExtension(file.Name).ToLowerInvariant();
+        var allowedExtensions = new[] { ".stl", ".3mf", ".dxf", ".obj" };
+
+        if (!allowedExtensions.Contains(extension))
+        {
+            FileError = "Format non supporté. Veuillez utiliser .stl, .3mf, .dxf ou .obj.";
+            UploadedFile = file;
+            return;
+        }
+
+        UploadedFile = file;
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (UploadedFile == null || FileError != null)
+        {
+            if (UploadedFile == null) FileError = "Veuillez joindre un fichier à imprimer.";
+            return;
+        }
+
+        if (!TicketModel.TermsAccepted) return;
+
+        // --- SIMULATION ---
+        await Task.Delay(1000);
+
+        RandomTicketNumber = new Random().Next(1000, 9999);
+        IsSubmitted = true;
+    }
+
+    private void ResetForm()
+    {
+        TicketModel = new PrintTicketModel();
+        UploadedFile = null;
+        FileError = null;
+        IsSubmitted = false;
+    }
+
+    // Modèle de validation
+    public class PrintTicketModel
+    {
+        [Required(ErrorMessage = "Votre nom est requis.")]
+        public string StudentName { get; set; } = "";
+
+        [Required(ErrorMessage = "L'email est requis.")]
+        [EmailAddress(ErrorMessage = "Email invalide.")]
+        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@edu\.devinci\.fr$", ErrorMessage = "Veuillez utiliser votre adresse @edu.devinci.fr")]
+        public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Donnez un nom à votre projet.")]
+        public string ProjectName { get; set; } = "";
+
+        [Required(ErrorMessage = "Sélectionnez une technologie.")]
+        public string Technology { get; set; } = "";
+
+        public string MaterialPref { get; set; } = "Peu importe";
+
+        [Required(ErrorMessage = "Veuillez donner quelques détails.")]
+        public string Description { get; set; } = "";
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Vous devez accepter le règlement.")]
+        public bool TermsAccepted { get; set; }
+    }
+}

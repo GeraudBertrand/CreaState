@@ -1,0 +1,164 @@
+﻿/* * WRAPPER PLEIN ÉCRAN :
+         * C'est lui qui s'occupe de centrer (centraliser) la carte au milieu.
+         */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* 100vh = 100% de la hauteur de la fenêtre du navigateur */
+    min-height: 100vh;
+    width: 100vw;
+    /* Reset des marges potentielles du Layout parent */
+    margin: 0;
+    padding: 1rem;
+    box-sizing: border-box;
+    background-color: #f4f7f9;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.login-card {
+    background: white;
+    width: 100%;
+    max-width: 640px; /* Légèrement plus large pour respirer */
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08); /* Ombre plus douce et diffuse */
+    border: 1px solid #e1e8ed;
+    overflow: hidden;
+}
+
+/* Petite animation d'apparition douce */
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-header {
+    background: #2c3e50;
+    color: white;
+    padding: 2.5rem 2rem;
+    text-align: center;
+}
+
+    .login-header h2 {
+        margin: 15px 0 5px;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .login-header p {
+        margin: 0;
+        font-size: 0.9rem;
+        opacity: 0.85;
+    }
+
+    .login-header i {
+        color: #d41a5f;
+    }
+/* Magenta Créalab */
+
+.login-form {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+    .form-group label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #495057;
+    }
+
+.form-control {
+    padding: 12px 14px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: all 0.2s;
+    background-color: #f8f9fa;
+}
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0896b5;
+        background-color: white;
+        box-shadow: 0 0 0 3px rgba(8, 150, 181, 0.1);
+    }
+
+.btn-primary, .btn-secondary {
+    padding: 12px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.95rem;
+}
+
+.btn-primary {
+    background: #0896b5;
+    color: white;
+    margin-top: 10px;
+}
+
+    .btn-primary:hover {
+        background: #077da0;
+    }
+
+    .btn-primary:active {
+        transform: scale(0.98);
+    }
+
+.btn-secondary {
+    background: #e1e8ed;
+    color: #495057;
+}
+
+    .btn-secondary:hover {
+        background: #cbd3da;
+    }
+
+.error-alert {
+    background: #fce4ec;
+    color: #e74c3c;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    border: 1px solid #fadbd8;
+}
+
+.login-footer {
+    text-align: center;
+    padding: 1.2rem;
+    background: #f8f9fa;
+    font-size: 0.85rem;
+    color: #6c757d;
+    border-top: 1px solid #f1f3f5;
+}
+
+.help-text {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: #adb5bd;
+}

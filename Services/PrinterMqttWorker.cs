@@ -1,4 +1,5 @@
 ﻿using MQTTnet;
+using MQTTnet.Formatter;
 using System.Text;
 
 namespace CreaState.Services
@@ -18,49 +19,58 @@ namespace CreaState.Services
         {
             _logger.LogInformation("🚀 Démarrage du service MQTT Bambu Lab...");
 
-            // Récupérer la liste des imprimantes à écouter
             var printers = _printerService.GetPrinters();
             var tasks = new List<Task>();
 
             foreach (var printer in printers)
             {
-                // Pour chaque imprimante, on lance une tâche de connexion dédiée
+                // On lance une tâche isolée pour chaque imprimante
                 tasks.Add(ConnectAndListenToPrinter(printer, stoppingToken));
             }
 
-            // On attend que tout le monde ait fini (ne finira jamais tant que l'app tourne)
             await Task.WhenAll(tasks);
         }
 
         private async Task ConnectAndListenToPrinter(Models.Printer printer, CancellationToken token)
         {
+            // Vérification de sécurité avant de démarrer
+            if (string.IsNullOrEmpty(printer.IpAddress) || string.IsNullOrEmpty(printer.SerialNumber))
+            {
+                _logger.LogWarning($"Impossible de démarrer MQTT pour {printer.Name} : IP ou Serial manquant.");
+                return;
+            }
+
             var mqttFactory = new MqttClientFactory();
             using var mqttClient = mqttFactory.CreateMqttClient();
 
-            // Configuration SSL spécifique Bambu Lab
+            // Configuration Robuste (basée sur ton test réussi)
             var options = new MqttClientOptionsBuilder()
                 .WithTcpServer(printer.IpAddress, 8883)
                 .WithCredentials("bblp", printer.AccessCode)
+                .WithClientId($"Crealab_{printer.SerialNumber}_{Guid.NewGuid().ToString().Substring(0, 4)}")
+                .WithProtocolVersion(MqttProtocolVersion.V311) // FORCE V3.1.1
                 .WithTlsOptions(o =>
                 {
-                    o.WithAllowUntrustedCertificates(true);
-                    o.WithIgnoreCertificateChainErrors(true);
+                    o.UseTls(true);
+                    // Bypass total de la validation SSL
+                    o.WithCertificateValidationHandler(_ => true);
                 })
                 .WithKeepAlivePeriod(TimeSpan.FromSeconds(10))
+                .WithCleanSession(true)
                 .Build();
 
-            // Callback : Quand un message arrive
+            // Réception des messages
             mqttClient.ApplicationMessageReceivedAsync += e =>
             {
                 string payload = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
 
-                // 👉 On envoie la donnée au PrinterService
+                // On passe le relais au PrinterService pour le parsing et la mise à jour UI
                 _printerService.UpdateFromMqtt(printer.IpAddress, payload);
 
                 return Task.CompletedTask;
             };
 
-            // Boucle de reconnexion automatique (Résilience)
+            // Boucle de connexion et de maintien
             while (!token.IsCancellationRequested)
             {
                 try
@@ -68,20 +78,60 @@ namespace CreaState.Services
                     if (!mqttClient.IsConnected)
                     {
                         _logger.LogInformation($"Connexion à {printer.Name} ({printer.IpAddress})...");
-                        await mqttClient.ConnectAsync(options, token);
 
-                        // S'abonner au flux de données
-                        await mqttClient.SubscribeAsync("device/+/report");
-                        _logger.LogInformation($"✅ Connecté à {printer.Name} !");
+                        using (var connectTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+                        {
+                            await mqttClient.ConnectAsync(options, connectTimeout.Token);
+                        }
+
+                        // Abonnement au topic spécifique
+                        string reportTopic = $"device/{printer.SerialNumber}/report";
+                        await mqttClient.SubscribeAsync(reportTopic);
+
+                        _logger.LogInformation($"Connecté à {printer.Name} !");
+
+                        // Lancement de la boucle de commande "PushAll" en parallèle
+                        // On ne l'attend pas (Fire and Forget) pour ne pas bloquer la boucle principale
+                        _ = Task.Run(() => MaintainPushAllLoop(mqttClient, printer.SerialNumber, token), token);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning($"❌ Échec connexion {printer.Name}: {ex.Message}. Nouvelle tentative dans 5s.");
+                    _logger.LogWarning($"Échec connexion {printer.Name}: {ex.Message}. Retry 10s...");
                 }
 
-                // Pause de 5 secondes avant de vérifier la connexion
-                await Task.Delay(5000, token);
+                await Task.Delay(10000, token); // Vérification toutes les 10s
+            }
+        }
+
+        // Tâche secondaire : Envoie "PushAll" régulièrement pour rafraîchir toutes les données
+        private async Task MaintainPushAllLoop(IMqttClient client, string serialNumber, CancellationToken token)
+        {
+            string requestTopic = $"device/{serialNumber}/request";
+            string pushAllPayload = "{\"pushing\": {\"sequence_id\": \"0\", \"command\": \"pushall\"}}";
+
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(requestTopic)
+                .WithPayload(pushAllPayload)
+                .WithQualityOfServiceLevel(MQTTnet.Protocol.MqttQualityOfServiceLevel.AtLeastOnce)
+                .Build();
+
+            while (client.IsConnected && !token.IsCancellationRequested)
+            {
+                try
+                {
+                    // Envoi de la commande
+                    await client.PublishAsync(message, token);
+                    // _logger.LogInformation($"PushAll envoyé à {serialNumber}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Erreur PushAll: {ex.Message}");
+                    break; // Si erreur d'envoi, on sort de la boucle (le client principal tentera de reconnecter)
+                }
+
+                // Pause de 5 minutes entre chaque demande complète
+                await Task.Delay(TimeSpan.FromMinutes(5), token);
             }
         }
     }

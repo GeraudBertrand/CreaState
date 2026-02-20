@@ -1,4 +1,5 @@
-﻿@page "/members"
+﻿@page "/private/members"
+@layout PrivateLayout
 
 @inject PageHeaderService HeaderService
 
@@ -29,28 +30,7 @@
     <div class="members-grid">
         @foreach (var member in FilteredMembers)
         {
-            <div class="member-card">
-                <div class="card-top">
-                    <div class="avatar" style="background-color: @member.AvatarColor">
-                        @member.Initials
-                    </div>
-                    <div class="member-identity">
-                        <h3>@member.FullName</h3>
-                        <span class="member-role @(member.IsBoardMember ? "role-board" : "")">
-                            @member.RoleLabel
-                        </span>
-                    </div>
-                </div>
-
-                <div class="card-details">
-                    <div class="detail-item">
-                        <i class="fa-solid fa-graduation-cap"></i> Promo @member.ClassYearLabel
-                    </div>
-                    <div class="detail-item">
-                        <i class="fa-regular fa-envelope"></i> Contacter
-                    </div>
-                </div>
-            </div>
+            <MemberCard member="@member" />
         }
     </div>
 </div>

@@ -1,0 +1,26 @@
+﻿<div class="member-card">
+    <div class="card-top">
+        <div class="avatar" style="background-color: @member.AvatarColor">
+            @member.Initials
+        </div>
+        <div class="member-identity">
+            <h3>@member.FullName</h3>
+            <span class="member-role @(member.IsBoardMember ? "role-board" : "")">
+                @member.RoleLabel
+            </span>
+        </div>
+    </div>
+
+    <div class="card-details">
+        <div class="detail-item">
+            <i class="fa-solid fa-graduation-cap"></i> Promo @member.ClassYearLabel
+        </div>
+        <a class="detail-item" href="mailto:@member.Email">
+            <i class="fa-regular fa-envelope"></i> Contacter
+        </a>
+    </div>
+</div>
+
+@code {
+    [Parameter] public required Member member { get; set; }
+}

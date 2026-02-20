@@ -11,8 +11,8 @@ builder.Services.AddRazorComponents()
 
 #region Services
 builder.Services.AddScoped<PageHeaderService>();
-//builder.Services.AddSingleton<PrinterService>();
-//builder.Services.AddHostedService<PrinterMqttWorker>();
+builder.Services.AddSingleton<PrinterService>();
+builder.Services.AddHostedService<PrinterMqttWorker>();
 #endregion
 
 

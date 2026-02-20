@@ -1,0 +1,157 @@
+﻿@page "/public"
+@layout PublicLayout
+
+<PageTitle>Le Créalab - Fablab ESILV Nantes</PageTitle>
+
+<div class="main-container theme-industrial">
+    
+    <!-- 1. Hero Section -->
+    <header class="hero-section text-center">
+        <div class="hero-badge">Association Étudiante ESILV</div>
+        <h1>Bienvenue au Créalab Nantes</h1>
+        <p class="hero-subtitle">
+            Le laboratoire de fabrication numérique où l'ingénierie rencontre l'imagination. <br />
+            De l'idée au prototype, nous donnons vie à vos projets.
+        </p>
+        <div class="hero-actions">
+            <a href="/contact" class="btn-primary">Devenir Partenaire</a>
+            <a href="/public#machines" class="btn-outline-primary">Découvrir le matériel</a>
+        </div>
+    </header>
+
+    <!-- 2. Nos Valeurs / Mission -->
+    <section class="mission-section">
+        <div class="mission-card">
+            <i class="fa-solid fa-lightbulb"></i>
+            <h3>Apprendre</h3>
+            <p>Formation entre pairs sur la modélisation 3D, l'électronique et l'utilisation des machines à commande numérique.</p>
+        </div>
+        <div class="mission-card">
+            <i class="fa-solid fa-hammer"></i>
+            <h3>Créer</h3>
+            <p>Un espace ouvert pour prototyper, itérer et concrétiser des projets académiques, personnels ou associatifs.</p>
+        </div>
+        <div class="mission-card">
+            <i class="fa-solid fa-handshake-angle"></i>
+            <h3>Partager</h3>
+            <p>Un esprit collaboratif où les compétences s'échangent, soutenu par un réseau de partenaires industriels.</p>
+        </div>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- 3. Le Parc Matériel -->
+    <section id="machines" class="equipment-section">
+        <div class="section-header text-center">
+            <h2>Notre Parc Matériel</h2>
+            <p>Un équipement de pointe à disposition de nos membres</p>
+        </div>
+
+        <div class="equipment-grid">
+            <!-- Impression 3D -->
+            <div class="equipment-card">
+                <div class="eq-icon"><i class="fa-solid fa-cubes"></i></div>
+                <h4>Impression 3D FDM</h4>
+                <p>Parc de machines Bambu Lab (A1, X1 Carbon) pour un prototypage rapide et multi-matériaux (PLA, PETG, ABS).</p>
+            </div>
+
+            <!-- Résine -->
+            <div class="equipment-card">
+                <div class="eq-icon"><i class="fa-solid fa-droplet"></i></div>
+                <h4>Impression Résine</h4>
+                <p>Pour les pièces nécessitant une très haute précision mécanique ou des figurines ultra-détaillées.</p>
+            </div>
+
+            <!-- Découpe Laser -->
+            <div class="equipment-card">
+                <div class="eq-icon"><i class="fa-solid fa-fire"></i></div>
+                <h4>Découpeuse Laser</h4>
+                <p>Découpe et gravure de précision sur bois, PMMA et carton. L'outil idéal pour les châssis de robots.</p>
+            </div>
+
+            <!-- CNC -->
+            <div class="equipment-card">
+                <div class="eq-icon"><i class="fa-solid fa-gears"></i></div>
+                <h4>Fraiseuse CNC</h4>
+                <p>Usinage soustractif pour des matériaux plus denses et la création de circuits imprimés (PCB) sur mesure.</p>
+            </div>
+
+            <!-- Électronique -->
+            <div class="equipment-card">
+                <div class="eq-icon"><i class="fa-solid fa-microchip"></i></div>
+                <h4>Postes de Soudure</h4>
+                <p>Établis équipés (fers à souder, oscilloscopes, alimentations) pour l'intégration de l'électronique embarquée.</p>
+            </div>
+
+            <!-- Couture & Textiles -->
+            <div class="equipment-card">
+                <div class="eq-icon"><i class="fa-solid fa-scissors"></i></div>
+                <h4>Couture & Textiles</h4>
+                <p>Machines à coudre pour les projets wearables, la conception de sacoches ou les créations de costumes.</p>
+            </div>
+        </div>
+    </section>
+
+    <hr class="section-divider" />
+
+    <!-- 4. Projets Phares -->
+    <section class="projects-section">
+        <div class="section-header text-center">
+            <h2>Ce que nous créons</h2>
+        </div>
+        
+        <div class="projects-grid">
+            <!-- Projet 1 : Robotique -->
+            <div class="project-box">
+                <div class="proj-img">
+                    <i class="fa-solid fa-robot fa-3x"></i>
+                </div>
+                <div class="proj-content">
+                    <h4>Robotique & Mécatronique</h4>
+                    <p>Conception de châssis découpés au laser, impression de bras articulés et intégration mécanique pour les projets ingénieurs.</p>
+                </div>
+            </div>
+
+            <!-- Projet 2 : Objets Connectés (IoT) -->
+            <div class="project-box">
+                <div class="proj-img">
+                    <i class="fa-solid fa-wifi fa-3x"></i>
+                </div>
+                <div class="proj-content">
+                    <h4>Objets Connectés (IoT)</h4>
+                    <p>Création de boîtiers sur-mesure imprimés en 3D pour héberger l'électronique embarquée et les capteurs intelligents.</p>
+                </div>
+            </div>
+
+            <!-- Projet 3 : Aéromodélisme -->
+            <div class="project-box">
+                <div class="proj-img">
+                    <i class="fa-solid fa-plane-up fa-3x"></i>
+                </div>
+                <div class="proj-content">
+                    <h4>Aéromodélisme & Drones</h4>
+                    <p>Fabrication de pièces légères et résistantes (PLA-CF, PETG) pour l'aérodynamisme et la réparation de drones.</p>
+                </div>
+            </div>
+
+            <!-- Projet 4 : Maquettisme -->
+            <div class="project-box">
+                <div class="proj-img">
+                    <i class="fa-solid fa-city fa-3x"></i>
+                </div>
+                <div class="proj-content">
+                    <h4>Maquettisme & Design</h4>
+                    <p>Réalisation de maquettes architecturales haute précision (Découpe Laser) et prototypage de design industriel (Résine).</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. CTA Partenariats -->
+    <section class="cta-section text-center">
+        <h2>Soutenez l'innovation étudiante</h2>
+        <p>Vous êtes une entreprise spécialisée dans l'outillage, les consommables (filaments, bois) ou la tech ? Aidez-nous à équiper les ingénieurs de demain.</p>
+        <a href="/contact" class="btn-primary mt-3"><i class="fa-solid fa-envelope"></i> Discuter d'un partenariat</a>
+    </section>
+
+</div>

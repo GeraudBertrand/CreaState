@@ -1,0 +1,220 @@
+﻿/* --- Styles Spécifiques Public --- */
+
+.public-header {
+    margin-bottom: 1rem;
+    color: var(--text-main, #2c3e50);
+}
+
+    .public-header h1 {
+        font-weight: 800;
+        font-size: 2.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .public-header p {
+        color: var(--text-muted, #95a5a6);
+        font-size: 1.1rem;
+    }
+
+.mt-3 {
+    margin-top: 1rem;
+}
+
+.mt-4 {
+    margin-top: 1.5rem;
+}
+
+.w-100 {
+    width: 100%;
+    justify-content: center;
+}
+
+.contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 30px;
+}
+
+@media (max-width: 768px) {
+    .contact-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.card-clean {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-color, #e1e8ed);
+}
+
+/* --- Colonne Info --- */
+.contact-info h3 {
+    font-size: 1.1rem;
+    color: var(--primary-blue, #0896b5);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.contact-info p {
+    color: var(--text-muted, #495057);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.partnership-text {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent-magenta, #d41a5f);
+    font-size: 0.9rem !important;
+}
+
+.social-links {
+    display: flex;
+    gap: 15px;
+}
+
+.social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #f1f3f5;
+    color: var(--text-main, #2c3e50);
+    font-size: 1.2rem;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+    .social-btn:hover {
+        background-color: var(--primary-blue, #0896b5);
+        color: white;
+        transform: translateY(-3px);
+    }
+
+/* --- Colonne Formulaire --- */
+.contact-form h3 {
+    margin: 0 0 10px 0;
+    color: var(--text-main, #2c3e50);
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid #e1e8ed;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+    .form-group label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #495057;
+    }
+
+.form-control {
+    padding: 10px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    background-color: #f8f9fa;
+}
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0896b5;
+        background-color: white;
+    }
+
+.text-danger {
+    color: #e74c3c;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
+/* Modifiés par rapport à ta base pour s'adapter au design public */
+.btn-primary {
+    padding: 12px 20px;
+    background-color: var(--primary-blue, #0896b5);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+    .btn-primary:hover {
+        background-color: #077da0;
+    }
+
+.btn-outline-primary {
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--primary-blue, #0896b5);
+    border: 1px solid var(--primary-blue, #0896b5);
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+    .btn-outline-primary:hover {
+        background: var(--primary-blue, #0896b5);
+        color: white;
+    }
+
+/* Alertes */
+.alert-success {
+    background-color: #e8f8f5;
+    border: 1px solid #a3e4d7;
+    color: #117a65;
+    padding: 20px;
+    border-radius: 8px;
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+    .alert-success h4 {
+        margin: 0 0 5px 0;
+        font-size: 1.1rem;
+    }
+
+    .alert-success p {
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

@@ -1,0 +1,85 @@
+﻿.member-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color, #e1e8ed);
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+    .member-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+        border-color: var(--primary-blue, #0896b5);
+    }
+
+.status-indicator {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 12px;
+    height: 12px;
+    background-color: var(--status-success, #2ecc71);
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
+}
+
+.card-top {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 1.5rem;
+}
+
+.avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.member-identity h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-main, #2c3e50);
+}
+
+.member-role {
+    font-size: 0.8rem;
+    color: var(--text-muted, #95a5a6);
+}
+
+    .member-role.role-board {
+        color: var(--accent-magenta, #d41a5f);
+        font-weight: 600;
+    }
+
+.card-details {
+    border-top: 1px solid var(--border-color, #f1f3f5);
+    padding-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.detail-item {
+    font-size: 0.85rem;
+    color: var(--text-muted, #95a5a6);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+    text-decoration: none;
+}
+
+    /* Style de lien pour l'email */
+    .detail-item:last-child:hover {
+        color: var(--primary-blue, #0896b5);
+        cursor: pointer;
+    }
