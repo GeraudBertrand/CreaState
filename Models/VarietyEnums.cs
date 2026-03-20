@@ -51,37 +51,74 @@ namespace CreaState.Models
         Other
     }
 
-    /// <summary>
-    /// Énumération des différents rôles de l'association
-    /// </summary>
-    public enum RoleEnum
+    public enum RequestType
     {
-        [Display(Name = "Membre")]
-        Member,
+        [Display(Name = "Impression FDM")]
+        FDM,
+        [Display(Name = "Impression SLA")]
+        SLA,
+        [Display(Name = "Découpe laser")]
+        Laser,
+        [Display(Name = "Autre")]
+        Other
+    }
 
-        [Display(Name = "Président")]
-        President,
+    public enum RequestStatus
+    {
+        [Display(Name = "Soumise")]
+        Submitted,
+        [Display(Name = "En cours d'examen")]
+        UnderReview,
+        [Display(Name = "Approuvée")]
+        Approved,
+        [Display(Name = "Rejetée")]
+        Rejected,
+        [Display(Name = "En cours")]
+        InProgress,
+        [Display(Name = "Terminée")]
+        Completed,
+        [Display(Name = "Annulée")]
+        Cancelled
+    }
 
-        [Display(Name = "Vice-Président")]
-        VicePresident,
+    public enum InventoryCategory
+    {
+        [Display(Name = "Filament")]
+        Filament,
+        [Display(Name = "Résine")]
+        Resin,
+        [Display(Name = "Matériau laser")]
+        LaserMaterial,
+        [Display(Name = "Électronique")]
+        Electronics,
+        [Display(Name = "Autre")]
+        Other
+    }
 
-        [Display(Name = "Trésorier")]
-        Treasurer,
+    public enum MaintenanceType
+    {
+        [Display(Name = "Planifiée")]
+        Scheduled,
+        [Display(Name = "Réparation")]
+        Repair,
+        [Display(Name = "Calibration")]
+        Calibration,
+        [Display(Name = "Nettoyage")]
+        Cleaning,
+        [Display(Name = "Autre")]
+        Other
+    }
 
-        [Display(Name = "Secrétaire")]
-        Secretary,
-
-        [Display(Name = "Resp. Partenariat")]
-        PartnershipManager,
-
-        [Display(Name = "Resp. Technique")]
-        TechManager,
-
-        [Display(Name = "Resp. Communication")]
-        ComManager,
-
-        [Display(Name = "Resp. Événementiel")]
-        EventManager
+    public enum FileReviewStatus
+    {
+        [Display(Name = "En attente")]
+        Pending,
+        [Display(Name = "Accepté")]
+        Accepted,
+        [Display(Name = "Refusé")]
+        Refused,
+        [Display(Name = "À modifier")]
+        NeedsModification
     }
 
     /// <summary>

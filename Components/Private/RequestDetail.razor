@@ -1,0 +1,422 @@
+@page "/private/requests/{Id:int}"
+@layout PrivateLayout
+@attribute [Authorize]
+
+@inject PageHeaderService HeaderService
+@inject RequestService RequestService
+@inject AuthStateProvider AuthState
+@inject NavigationManager NavManager
+@inject PrinterService PrinterService
+@inject EmailService EmailService
+
+<PageTitle>Demande #@Id - Créalab</PageTitle>
+
+<div class="content-section">
+    @if (Request == null)
+    {
+        <div class="card-clean text-center" style="padding: 3rem;">
+            <p style="color: var(--text-muted);">Demande introuvable.</p>
+            <button class="btn btn-secondary mt-2" @onclick="GoBack">Retour</button>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex gap-3 mb-3">
+            <button class="btn btn-secondary btn-sm" @onclick="GoBack">
+                <i class="fa-solid fa-arrow-left"></i> Retour
+            </button>
+        </div>
+
+        <div class="row g-3">
+            <!-- Détails principaux -->
+            <div class="col-md-8">
+                <div class="card-clean" style="padding: 1.5rem;">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <h4 style="margin: 0;">@Request.Title</h4>
+                        <span class="badge @Request.StatusCssClass">@Request.StatusLabel</span>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <small style="color: var(--text-muted);">Type</small>
+                            <div><strong>@Request.TypeLabel</strong></div>
+                        </div>
+                        <div class="col-6">
+                            <small style="color: var(--text-muted);">Matériau souhaité</small>
+                            <div><strong>@(Request.MaterialPreference ?? "Non spécifié")</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <small style="color: var(--text-muted);">Description</small>
+                        <div style="background: var(--bg-body); padding: 1rem; border-radius: 8px; margin-top: 0.25rem;">
+                            @Request.Description
+                        </div>
+                    </div>
+
+                    @if (Request.Status == RequestStatus.Rejected && !string.IsNullOrEmpty(Request.RejectionReason))
+                    {
+                        <div style="background: #ffe6e6; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--status-error);">
+                            <strong><i class="fa-solid fa-circle-xmark"></i> Raison du rejet :</strong>
+                            <p style="margin: 0.5rem 0 0;">@Request.RejectionReason</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Section fichiers -->
+                <div class="card-clean mt-3" style="padding: 1.5rem;">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h6 style="margin: 0;"><i class="fa-solid fa-paperclip"></i> Fichiers (@Request.Files.Count)</h6>
+                        @if (CanEditFiles)
+                        {
+                            <label class="btn btn-sm btn-outline-primary" style="cursor: pointer; margin: 0;">
+                                <i class="fa-solid fa-plus"></i> Ajouter
+                                <InputFile OnChange="HandleAddFile" accept=".stl,.3mf,.dxf,.obj" style="display: none;" />
+                            </label>
+                        }
+                    </div>
+
+                    @if (!Request.Files.Any())
+                    {
+                        <p style="color: var(--text-muted); text-align: center; padding: 1rem;">Aucun fichier joint.</p>
+                    }
+                    else
+                    {
+                        <div class="files-list">
+                            @foreach (var file in Request.Files.OrderBy(f => f.UploadedAt))
+                            {
+                                <div class="file-row">
+                                    <div class="file-info">
+                                        <i class="fa-solid fa-file-code" style="color: var(--primary-blue);"></i>
+                                        <div class="file-details">
+                                            <a href="@file.FilePath" target="_blank" class="file-name">@file.OriginalFileName</a>
+                                            <small>@file.FileSizeLabel — @file.UploadedAt.ToString("dd/MM HH:mm")</small>
+                                        </div>
+                                        <span class="file-status-badge @file.StatusCssClass">@file.StatusLabel</span>
+                                    </div>
+
+                                    <div class="file-actions">
+                                        @if (IsManager)
+                                        {
+                                            <button class="btn-file-action accept @(file.Status == FileReviewStatus.Accepted ? "active" : "")"
+                                                    title="Accepter" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Accepted)">
+                                                <i class="fa-solid fa-check"></i>
+                                            </button>
+                                            <button class="btn-file-action refuse @(file.Status == FileReviewStatus.Refused ? "active" : "")"
+                                                    title="Refuser" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Refused)">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                            <button class="btn-file-action modify @(file.Status == FileReviewStatus.NeedsModification ? "active" : "")"
+                                                    title="À modifier" @onclick="() => OpenCommentModal(file.Id)">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                        }
+
+                                        @if (CanEditFiles && (file.Status == FileReviewStatus.Refused || file.Status == FileReviewStatus.NeedsModification || file.Status == FileReviewStatus.Pending))
+                                        {
+                                            <label class="btn-file-action replace" title="Remplacer" style="cursor: pointer;">
+                                                <i class="fa-solid fa-arrows-rotate"></i>
+                                                <InputFile OnChange="(e) => HandleReplaceFile(e, file.Id)" accept=".stl,.3mf,.dxf,.obj" style="display: none;" />
+                                            </label>
+                                            <button class="btn-file-action delete" title="Supprimer" @onclick="() => DeleteFile(file.Id)">
+                                                <i class="fa-solid fa-trash"></i>
+                                            </button>
+                                        }
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(file.ManagerComment))
+                                    {
+                                        <div class="file-comment">
+                                            <i class="fa-solid fa-comment"></i> @file.ManagerComment
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (IsManager && Request.Files.Any(f => f.Status != FileReviewStatus.Pending))
+                    {
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e1e8ed;">
+                            <button class="btn btn-sm @(Request.NotificationSent ? "btn-outline-secondary" : "btn-primary")"
+                                    @onclick="SendNotification" disabled="@IsSendingNotification">
+                                <i class="fa-solid @(Request.NotificationSent ? "fa-check-circle" : "fa-bell")"></i>
+                                @(Request.NotificationSent ? "Notification envoyée" : "Prévenir le demandeur")
+                            </button>
+                            @if (!string.IsNullOrEmpty(NotificationMessage))
+                            {
+                                <span style="margin-left: 8px; font-size: 0.82rem; color: #117a65;">@NotificationMessage</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Sidebar info -->
+            <div class="col-md-4">
+                <div class="card-clean" style="padding: 1.5rem;">
+                    <h6>Informations</h6>
+
+                    <div class="mb-2">
+                        <small style="color: var(--text-muted);">Demandeur</small>
+                        <div><strong>@(Request.RequestedBy?.FullName ?? "—")</strong></div>
+                    </div>
+
+                    <div class="mb-2">
+                        <small style="color: var(--text-muted);">Créée le</small>
+                        <div>@Request.CreatedAt.ToString("dd/MM/yyyy à HH:mm")</div>
+                    </div>
+
+                    @if (Request.ReviewedAt.HasValue)
+                    {
+                        <div class="mb-2">
+                            <small style="color: var(--text-muted);">Examinée le</small>
+                            <div>@Request.ReviewedAt.Value.ToString("dd/MM/yyyy à HH:mm")</div>
+                        </div>
+                    }
+
+                    @if (Request.AssignedTo != null)
+                    {
+                        <div class="mb-2">
+                            <small style="color: var(--text-muted);">Assignée à</small>
+                            <div><strong>@Request.AssignedTo.FullName</strong></div>
+                        </div>
+                    }
+
+                    @if (Request.Printer != null)
+                    {
+                        <div class="mb-2">
+                            <small style="color: var(--text-muted);">Machine</small>
+                            <div><strong>@Request.Printer.Name</strong></div>
+                        </div>
+                    }
+
+                    @if (Request.CompletedAt.HasValue)
+                    {
+                        <div class="mb-2">
+                            <small style="color: var(--text-muted);">Terminée le</small>
+                            <div>@Request.CompletedAt.Value.ToString("dd/MM/yyyy à HH:mm")</div>
+                        </div>
+                    }
+                </div>
+
+                @if (IsManager)
+                {
+                    <div class="card-clean mt-3" style="padding: 1.5rem;">
+                        <h6>Actions</h6>
+
+                        @if (Request.Status == RequestStatus.Approved || Request.Status == RequestStatus.InProgress)
+                        {
+                            <div class="form-group mb-2">
+                                <label>Assigner une machine</label>
+                                <select class="form-control" @bind="SelectedPrinterId" @bind:after="AssignMachine">
+                                    <option value="">— Aucune —</option>
+                                    @foreach (var printer in Printers)
+                                    {
+                                        <option value="@printer.Id">@printer.Name</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+
+                        @if (Request.Status == RequestStatus.Submitted)
+                        {
+                            <button class="btn btn-success btn-sm w-100 mb-2" @onclick="Approve">
+                                <i class="fa-solid fa-check"></i> Approuver
+                            </button>
+                            <button class="btn btn-danger btn-sm w-100" @onclick="Reject">
+                                <i class="fa-solid fa-xmark"></i> Rejeter
+                            </button>
+                        }
+                        else if (Request.Status == RequestStatus.Approved)
+                        {
+                            <button class="btn btn-info btn-sm w-100" @onclick="Start">
+                                <i class="fa-solid fa-play"></i> Lancer
+                            </button>
+                        }
+                        else if (Request.Status == RequestStatus.InProgress)
+                        {
+                            <button class="btn btn-success btn-sm w-100" @onclick="Complete">
+                                <i class="fa-solid fa-flag-checkered"></i> Terminer
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal commentaire -->
+@if (ShowCommentModal)
+{
+    <div class="modal-overlay" @onclick="() => ShowCommentModal = false">
+        <div class="modal-panel" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <div class="modal-icon-circle primary">
+                    <i class="fa-solid fa-comment"></i>
+                </div>
+                <div>
+                    <h5>Commentaire</h5>
+                    <span class="modal-subtitle">Indiquer la modification demandée</span>
+                </div>
+                <button class="modal-close" @onclick="() => ShowCommentModal = false">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Commentaire</label>
+                    <textarea class="form-input" @bind="CommentText" rows="3" placeholder="Décrivez les modifications à apporter..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-action btn-secondary" @onclick="() => ShowCommentModal = false">Annuler</button>
+                <button class="btn-action btn-primary-fill" @onclick="SubmitComment">
+                    <i class="fa-solid fa-paper-plane"></i> Envoyer
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Request? Request;
+    private bool IsManager;
+    private bool IsOwner;
+    private List<Printer> Printers = new();
+    private string SelectedPrinterId = "";
+
+    private bool IsSendingNotification = false;
+    private string? NotificationMessage;
+
+    private bool ShowCommentModal = false;
+    private int CommentFileId;
+    private string CommentText = "";
+
+    private const long MaxFileSize = 1024 * 1024 * 50;
+
+    private bool CanEditFiles => IsOwner && (Request?.Status == RequestStatus.Submitted || Request?.Status == RequestStatus.Rejected);
+
+    protected override async Task OnInitializedAsync()
+    {
+        HeaderService.SetTitle($"Demande #{Id}", "Détail de la demande");
+
+        Request = await RequestService.GetRequestByIdAsync(Id);
+        IsManager = AuthState.HasPermission("manage_requests");
+
+        var currentMember = AuthState.CurrentMember;
+        IsOwner = currentMember != null && Request?.RequestedByMemberId == currentMember.Id;
+
+        Printers = PrinterService.GetPrinters();
+        SelectedPrinterId = Request?.PrinterId ?? "";
+    }
+
+    private void GoBack() => NavManager.NavigateTo("/private/requests");
+
+    private async Task ReviewFile(int fileId, FileReviewStatus status)
+    {
+        await RequestService.ReviewFileAsync(fileId, status);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private void OpenCommentModal(int fileId)
+    {
+        CommentFileId = fileId;
+        CommentText = "";
+        ShowCommentModal = true;
+    }
+
+    private async Task SubmitComment()
+    {
+        await RequestService.ReviewFileAsync(CommentFileId, FileReviewStatus.NeedsModification, CommentText);
+        ShowCommentModal = false;
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task HandleAddFile(InputFileChangeEventArgs e)
+    {
+        if (Request == null) return;
+        var file = e.File;
+        if (file.Size > MaxFileSize) return;
+
+        using var stream = file.OpenReadStream(MaxFileSize);
+        await RequestService.AddFileAsync(Request.Id, stream, file.Name, file.Size);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task HandleReplaceFile(InputFileChangeEventArgs e, int fileId)
+    {
+        var file = e.File;
+        if (file.Size > MaxFileSize) return;
+
+        using var stream = file.OpenReadStream(MaxFileSize);
+        await RequestService.ReplaceFileAsync(fileId, stream, file.Name, file.Size);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task DeleteFile(int fileId)
+    {
+        await RequestService.DeleteFileAsync(fileId);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task SendNotification()
+    {
+        if (Request == null) return;
+        IsSendingNotification = true;
+
+        try
+        {
+            await EmailService.SendRequestReviewNotificationAsync(Request);
+            await RequestService.MarkNotificationSentAsync(Request.Id);
+            Request = await RequestService.GetRequestByIdAsync(Id);
+            NotificationMessage = "Email envoyé avec succès !";
+        }
+        catch
+        {
+            NotificationMessage = "Erreur lors de l'envoi (vérifiez la config SMTP).";
+        }
+        finally
+        {
+            IsSendingNotification = false;
+        }
+    }
+
+    private async Task Approve()
+    {
+        var member = AuthState.CurrentMember;
+        await RequestService.UpdateStatusAsync(Id, RequestStatus.Approved, member?.Id);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task Reject()
+    {
+        var member = AuthState.CurrentMember;
+        await RequestService.UpdateStatusAsync(Id, RequestStatus.Rejected, member?.Id, "Demande rejetée par le responsable.");
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task Start()
+    {
+        await RequestService.UpdateStatusAsync(Id, RequestStatus.InProgress);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task Complete()
+    {
+        await RequestService.UpdateStatusAsync(Id, RequestStatus.Completed);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task AssignMachine()
+    {
+        if (!string.IsNullOrEmpty(SelectedPrinterId))
+        {
+            await RequestService.AssignMachineAsync(Id, SelectedPrinterId);
+            Request = await RequestService.GetRequestByIdAsync(Id);
+        }
+    }
+}

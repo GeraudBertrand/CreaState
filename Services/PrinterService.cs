@@ -13,19 +13,17 @@ namespace CreaState.Services
         // L'événement que Blazor écoutera pour rafraîchir la page
         public event Action? OnChange;
 
-        public PrinterService()
+        /// <summary>
+        /// Charge les imprimantes depuis la base de données.
+        /// Appelé au démarrage par PrinterMqttWorker.
+        /// </summary>
+        public void LoadPrintersFromDb(List<Printer> dbPrinters)
         {
-            // Initialisation avec des données de base (ou chargement depuis la DB / Config)
-            // Dans le futur, tu chargeras ça depuis appsettings.json ou SQL
-            var p1 = new Printer { Name = "Ratome", IpAddress = "10.3.212.16", Model = "A1 Mini", AccessCode = "26110863", SerialNumber = "0309DA3C3100431" };
-            var p2 = new Printer { Name = "Bonnie", IpAddress = "10.3.212.10", Model = "A1 Mini", AccessCode = "87654321", SerialNumber = "0309DA3C3100060" };
-            var p3 = new Printer { Name = "Hubble", IpAddress = "10.3.212.19", Model = "A1 Mini", AccessCode = "84466330", SerialNumber = "0309DA422200342" };
-            var p4 = new Printer { Name = "R2-D2", IpAddress = "10.3.212.23", Model = "A1 Mini", AccessCode = "85255827", SerialNumber = "0309DA441501115" };
-
-            _printers.TryAdd(p1.IpAddress, p1);
-            _printers.TryAdd(p2.IpAddress, p2);
-            _printers.TryAdd(p3.IpAddress, p3);
-            _printers.TryAdd(p4.IpAddress, p4);
+            _printers.Clear();
+            foreach (var printer in dbPrinters)
+            {
+                _printers.TryAdd(printer.IpAddress, printer);
+            }
         }
 
         // Récupérer la liste pour l'affichage

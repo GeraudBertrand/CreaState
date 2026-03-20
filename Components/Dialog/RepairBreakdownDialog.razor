@@ -1,0 +1,69 @@
+@using CreaState.Models
+
+@if (Show)
+{
+    <div class="modal-overlay" @onclick="Close">
+        <div class="modal-panel" @onclick:stopPropagation="true">
+            <div class="modal-header modal-header-success">
+                <div class="modal-icon-circle success">
+                    <i class="fa-solid fa-wrench"></i>
+                </div>
+                <div>
+                    <h5>Réparer — @(Record?.Printer?.Name ?? "")</h5>
+                    <span class="modal-subtitle">Panne signalée le @(Record?.PerformedAt.ToString("dd/MM/yyyy à HH:mm") ?? "")</span>
+                </div>
+                <button class="modal-close" @onclick="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="info-banner">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <div>
+                        <strong>Problème signalé :</strong>
+                        <p>@Record?.Description</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Type de réparation</label>
+                    <select class="form-input" @bind="RepairType">
+                        @foreach (var t in Enum.GetValues<MaintenanceType>())
+                        {
+                            <option value="@t">@t.GetDisplayName()</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Détail de l'intervention</label>
+                    <textarea class="form-input" @bind="RepairDescription" rows="4" placeholder="Décrivez ce qui a été fait pour résoudre le problème..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-action btn-secondary" @onclick="Close">Annuler</button>
+                <button class="btn-action btn-success-fill" @onclick="Submit" disabled="@string.IsNullOrWhiteSpace(RepairDescription)">
+                    <i class="fa-solid fa-check"></i> Marquer comme réparé
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public MaintenanceRecord? Record { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<(MaintenanceType Type, string Description)> OnSubmit { get; set; }
+
+    private MaintenanceType RepairType = MaintenanceType.Repair;
+    private string RepairDescription = "";
+
+    private async Task Close() => await OnClose.InvokeAsync();
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(RepairDescription)) return;
+        await OnSubmit.InvokeAsync((RepairType, RepairDescription));
+        RepairType = MaintenanceType.Repair;
+        RepairDescription = "";
+    }
+}

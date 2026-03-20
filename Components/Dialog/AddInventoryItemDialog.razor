@@ -1,0 +1,122 @@
+@using CreaState.Models
+
+@if (Show)
+{
+    <div class="modal-overlay" @onclick="Close">
+        <div class="modal-panel modal-lg" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <div class="modal-icon-circle primary">
+                    <i class="fa-solid fa-box"></i>
+                </div>
+                <div>
+                    <h5>Nouvel article</h5>
+                    <span class="modal-subtitle">Ajouter un élément à l'inventaire</span>
+                </div>
+                <button class="modal-close" @onclick="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Nom -->
+                <div class="form-group">
+                    <label>Nom de l'article <span class="required">*</span></label>
+                    <input class="form-input" @bind="NewItem.Name" placeholder="Ex: PLA Noir 1kg" />
+                </div>
+
+                <!-- Catégorie + Marque -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Catégorie <span class="required">*</span></label>
+                        <select class="form-input" @bind="NewItem.Category">
+                            @foreach (var cat in Enum.GetValues<InventoryCategory>())
+                            {
+                                <option value="@cat">@cat.GetDisplayName()</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Marque <span class="optional">(optionnel)</span></label>
+                        <input class="form-input" @bind="NewItem.Brand" placeholder="Bambu Lab, Elegoo..." />
+                    </div>
+                </div>
+
+                <!-- Type matériau + Couleur + Unité -->
+                <div class="form-row form-row-3">
+                    <div class="form-group">
+                        <label>Type matériau</label>
+                        <input class="form-input" @bind="NewItem.MaterialType" placeholder="PLA, PETG, Résine..." />
+                    </div>
+                    <div class="form-group">
+                        <label>Couleur</label>
+                        <input class="form-input" @bind="NewItem.Color" placeholder="Noir, Blanc..." />
+                    </div>
+                    <div class="form-group">
+                        <label>Unité</label>
+                        <select class="form-input" @bind="NewItem.Unit">
+                            <option value="g">Grammes (g)</option>
+                            <option value="ml">Millilitres (ml)</option>
+                            <option value="pcs">Pièces</option>
+                            <option value="m">Mètres (m)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-divider"></div>
+
+                <!-- Quantités -->
+                <div class="form-row form-row-3">
+                    <div class="form-group">
+                        <label>Quantité initiale <span class="required">*</span></label>
+                        <input type="number" class="form-input" @bind="NewItem.InitialQuantity" min="0" step="0.1" />
+                    </div>
+                    <div class="form-group">
+                        <label>Quantité actuelle <span class="required">*</span></label>
+                        <input type="number" class="form-input" @bind="NewItem.QuantityRemaining" min="0" step="0.1" />
+                    </div>
+                    <div class="form-group">
+                        <label>Seuil d'alerte</label>
+                        <input type="number" class="form-input" @bind="NewItem.LowStockThreshold" min="0" step="0.1" />
+                        <span class="form-hint">Notifié quand le stock passe sous ce seuil</span>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-group">
+                    <label>Notes <span class="optional">(optionnel)</span></label>
+                    <textarea class="form-input" @bind="NewItem.Notes" rows="2" placeholder="Informations complémentaires..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-action btn-secondary" @onclick="Close">Annuler</button>
+                <button class="btn-action btn-primary-fill" @onclick="Submit" disabled="@string.IsNullOrWhiteSpace(NewItem.Name)">
+                    <i class="fa-solid fa-plus"></i> Ajouter à l'inventaire
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<InventoryItem> OnSubmit { get; set; }
+
+    private InventoryItem NewItem = new() { Unit = "g", LowStockThreshold = 100 };
+
+    protected override void OnParametersSet()
+    {
+        if (Show && string.IsNullOrEmpty(NewItem.Name))
+        {
+            NewItem = new InventoryItem { Unit = "g", LowStockThreshold = 100 };
+        }
+    }
+
+    private async Task Close() => await OnClose.InvokeAsync();
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(NewItem.Name)) return;
+        await OnSubmit.InvokeAsync(NewItem);
+        NewItem = new InventoryItem { Unit = "g", LowStockThreshold = 100 };
+    }
+}

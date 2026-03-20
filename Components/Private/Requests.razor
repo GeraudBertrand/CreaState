@@ -1,0 +1,183 @@
+@page "/private/requests"
+@layout PrivateLayout
+@attribute [Authorize]
+
+@inject PageHeaderService HeaderService
+@inject RequestService RequestService
+@inject AuthStateProvider AuthState
+@inject NavigationManager NavManager
+
+<PageTitle>Demandes - Créalab</PageTitle>
+
+<div class="content-section">
+    <!-- Filtres -->
+    <div class="card-clean" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem;">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="form-group mb-0">
+                <select class="form-control" @bind="FilterStatus" @bind:after="LoadRequestList" style="min-width: 180px;">
+                    <option value="">Tous les statuts</option>
+                    @foreach (var status in Enum.GetValues<RequestStatus>())
+                    {
+                        <option value="@status">@status.GetDisplayName()</option>
+                    }
+                </select>
+            </div>
+            <div style="margin-left: auto; color: var(--text-muted); font-size: 0.85rem;">
+                @RequestList.Count demande(s)
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des demandes -->
+    @if (RequestList.Count == 0)
+    {
+        <div class="card-clean text-center" style="padding: 3rem;">
+            <i class="fa-solid fa-inbox fa-3x" style="color: var(--text-muted); margin-bottom: 1rem;"></i>
+            <p style="color: var(--text-muted);">Aucune demande pour le moment.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card-clean">
+            <div class="table-responsive">
+                <table class="table" style="margin: 0;">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Statut</th>
+                            <th>Type</th>
+                            <th>Titre</th>
+                            <th>Demandeur</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var req in RequestList)
+                        {
+                            <tr>
+                                <td><strong>@req.Id</strong></td>
+                                <td>
+                                    <span class="badge @req.StatusCssClass">@req.StatusLabel</span>
+                                </td>
+                                <td>@req.TypeLabel</td>
+                                <td>@req.Title</td>
+                                <td>@(req.RequestedBy?.FullName ?? "—")</td>
+                                <td>@req.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewDetail(req.Id)">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                    @if (IsManager && req.Status == RequestStatus.Submitted)
+                                    {
+                                        <button class="btn btn-sm btn-outline-success" @onclick="() => ApproveRequest(req.Id)">
+                                            <i class="fa-solid fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => ShowRejectModal(req.Id)">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    }
+                                    @if (IsManager && req.Status == RequestStatus.Approved)
+                                    {
+                                        <button class="btn btn-sm btn-outline-info" @onclick="() => StartRequest(req.Id)">
+                                            <i class="fa-solid fa-play"></i>
+                                        </button>
+                                    }
+                                    @if (IsManager && req.Status == RequestStatus.InProgress)
+                                    {
+                                        <button class="btn btn-sm btn-outline-success" @onclick="() => CompleteRequest(req.Id)">
+                                            <i class="fa-solid fa-flag-checkered"></i>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+</div>
+
+<CreaState.Components.Dialog.RejectRequestDialog
+    Show="ShowReject"
+    RequestId="RejectingRequestId"
+    OnClose="() => ShowReject = false"
+    OnSubmit="HandleReject" />
+
+@code {
+    private List<Request> RequestList = new();
+    private string FilterStatus { get; set; } = "";
+    private bool IsManager = false;
+
+    // Modal rejet
+    private bool ShowReject = false;
+    private int RejectingRequestId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        HeaderService.SetTitle("Gestion des Demandes", "Suivi des tickets d'impression et de découpe");
+
+        IsManager = AuthState.HasPermission("manage_requests");
+
+        await LoadRequestList();
+    }
+
+    private async Task LoadRequestList()
+    {
+        RequestStatus? filter = null;
+        if (Enum.TryParse<RequestStatus>(FilterStatus, out var parsed))
+            filter = parsed;
+
+        var member = AuthState.CurrentMember;
+        if (IsManager)
+        {
+            RequestList = await RequestService.GetAllRequestsAsync(filter);
+        }
+        else if (member != null)
+        {
+            RequestList = await RequestService.GetRequestsForUserAsync(member.Id);
+            if (filter.HasValue)
+                RequestList = RequestList.Where(r => r.Status == filter.Value).ToList();
+        }
+    }
+
+    private void ViewDetail(int id)
+    {
+        NavManager.NavigateTo($"/private/requests/{id}");
+    }
+
+    private async Task ApproveRequest(int id)
+    {
+        var member = AuthState.CurrentMember;
+        await RequestService.UpdateStatusAsync(id, RequestStatus.Approved, member?.Id);
+        await LoadRequestList();
+    }
+
+    private void ShowRejectModal(int id)
+    {
+        RejectingRequestId = id;
+        ShowReject = true;
+    }
+
+    private async Task HandleReject(string reason)
+    {
+        var member = AuthState.CurrentMember;
+        await RequestService.UpdateStatusAsync(RejectingRequestId, RequestStatus.Rejected, member?.Id, reason);
+        ShowReject = false;
+        await LoadRequestList();
+    }
+
+    private async Task StartRequest(int id)
+    {
+        await RequestService.UpdateStatusAsync(id, RequestStatus.InProgress);
+        await LoadRequestList();
+    }
+
+    private async Task CompleteRequest(int id)
+    {
+        await RequestService.UpdateStatusAsync(id, RequestStatus.Completed);
+        await LoadRequestList();
+    }
+}

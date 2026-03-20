@@ -1,5 +1,8 @@
 using CreaState.Components;
+using CreaState.Data;
 using CreaState.Services;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,16 +10,46 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+#region Database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+#endregion
 
+#region Authentication
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<AuthStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<AuthStateProvider>());
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", p => p.RequireClaim("Permission", "admin_access"));
+    options.AddPolicy("MemberOrAbove", p => p.RequireAuthenticatedUser());
+});
+#endregion
 
 #region Services
+builder.Services.AddScoped<MemberService>();
+builder.Services.AddScoped<RoleService>();
 builder.Services.AddScoped<PageHeaderService>();
 builder.Services.AddSingleton<PrinterService>();
 builder.Services.AddHostedService<PrinterMqttWorker>();
+builder.Services.AddScoped<RequestService>();
+builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<MaintenanceService>();
+builder.Services.AddScoped<PrintJobService>();
+builder.Services.AddScoped<EmailService>();
 #endregion
 
 
 var app = builder.Build();
+
+// Seed de la base de données
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await DbSeeder.SeedAsync(db);
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

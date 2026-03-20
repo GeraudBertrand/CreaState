@@ -1,5 +1,6 @@
 ﻿@page "/private/printers"
 @layout PrivateLayout
+@attribute [Authorize]
 
 @inject PageHeaderService HeaderService
 @inject PrinterService PrinterService

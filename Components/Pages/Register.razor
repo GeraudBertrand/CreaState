@@ -1,0 +1,141 @@
+@page "/register"
+@layout LoginLayout
+
+@inject NavigationManager NavManager
+@inject AuthService AuthService
+
+<PageTitle>Inscription - Créalab</PageTitle>
+
+<div class="login-wrapper theme-industrial">
+    <div class="login-card animate-fade-in">
+        <div class="login-header">
+            <i class="fa-solid fa-user-plus fa-3x"></i>
+            <h2>Inscription Créalab</h2>
+            <p>Créez votre compte avec votre email école.</p>
+        </div>
+
+        <div class="login-form">
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="error-alert">
+                    <i class="fa-solid fa-triangle-exclamation"></i> @ErrorMessage
+                </div>
+            }
+
+            <div class="flex-row d-flex justify-content-around">
+                <div class="form-group">
+                    <label for="firstName">Prénom</label>
+                    <input type="text" id="firstName" class="form-control" @bind="FirstName" placeholder="Jean" />
+                </div>
+
+                <div class="form-group">
+                    <label for="lastName">Nom</label>
+                    <input type="text" id="lastName" class="form-control" @bind="LastName" placeholder="Dupont" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email école</label>
+                <input type="email" id="email" class="form-control" @bind="Email" placeholder="prenom.nom@edu.devinci.fr" />
+                <small style="color: var(--text-muted); font-size: 0.8rem;">Seuls les emails @@edu.devinci.fr sont acceptés.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="classYear">Année</label>
+                <select id="classYear" class="form-control" @bind="ClassYear">
+                    @foreach (var year in Enum.GetValues<ClassYearEnum>())
+                    {
+                        <option value="@year">@year.GetDisplayName()</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <input type="password" id="password" class="form-control" @bind="Password" placeholder="Min. 6 caractères" />
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">Confirmer le mot de passe</label>
+                <input type="password" id="confirmPassword" class="form-control" @bind="ConfirmPassword" @onkeyup="HandleKeyUp" placeholder="••••••••" />
+            </div>
+
+            <button class="btn-primary" @onclick="AttemptRegister" disabled="@IsLoading">
+                @if (IsLoading)
+                {
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+                }
+                Créer mon compte
+            </button>
+
+            <button class="btn-secondary" @onclick="GoToLogin">
+                Déjà inscrit ? Se connecter
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string FirstName { get; set; } = "";
+    private string LastName { get; set; } = "";
+    private string Email { get; set; } = "";
+    private string Password { get; set; } = "";
+    private string ConfirmPassword { get; set; } = "";
+    private ClassYearEnum ClassYear { get; set; } = ClassYearEnum.A1;
+    private string ErrorMessage { get; set; } = "";
+    private bool IsLoading { get; set; } = false;
+
+    private async Task AttemptRegister()
+    {
+        ErrorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
+        {
+            ErrorMessage = "Veuillez remplir votre prénom et nom.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(Email))
+        {
+            ErrorMessage = "Veuillez entrer votre email école.";
+            return;
+        }
+
+        if (Password != ConfirmPassword)
+        {
+            ErrorMessage = "Les mots de passe ne correspondent pas.";
+            return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            var (success, error) = await AuthService.RegisterAsync(Email, Password, FirstName, LastName, ClassYear);
+            if (success)
+            {
+                NavManager.NavigateTo("/?registered=true");
+            }
+            else
+            {
+                ErrorMessage = error ?? "Erreur lors de l'inscription.";
+            }
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private void GoToLogin()
+    {
+        NavManager.NavigateTo("/");
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await AttemptRegister();
+        }
+    }
+}

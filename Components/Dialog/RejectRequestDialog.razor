@@ -1,0 +1,48 @@
+@if (Show)
+{
+    <div class="modal-overlay" @onclick="Close">
+        <div class="modal-panel" @onclick:stopPropagation="true">
+            <div class="modal-header modal-header-danger">
+                <div class="modal-icon-circle danger">
+                    <i class="fa-solid fa-xmark"></i>
+                </div>
+                <div>
+                    <h5>Rejeter la demande #@RequestId</h5>
+                    <span class="modal-subtitle">Cette action est irréversible</span>
+                </div>
+                <button class="modal-close" @onclick="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Raison du rejet</label>
+                    <textarea class="form-input" @bind="Reason" rows="3" placeholder="Expliquez la raison..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-action btn-secondary" @onclick="Close">Annuler</button>
+                <button class="btn-action btn-danger-fill" @onclick="Submit">
+                    <i class="fa-solid fa-xmark"></i> Rejeter
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public int RequestId { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+
+    private string Reason = "";
+
+    private async Task Close() => await OnClose.InvokeAsync();
+
+    private async Task Submit()
+    {
+        await OnSubmit.InvokeAsync(Reason);
+        Reason = "";
+    }
+}

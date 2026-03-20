@@ -1,5 +1,8 @@
 ﻿@page "/public/request"
 
+@inject RequestService RequestService
+@inject AuthStateProvider AuthState
+
 <PageTitle>Demande d'impression - Créalab</PageTitle>
 
 <div class="main-container theme-industrial">
@@ -92,24 +95,23 @@
                                 <ValidationMessage For="@(() => TicketModel.Description)" class="text-danger" />
                             </div>
 
-                            <!-- UPLOAD DE FICHIER -->
+                            <!-- UPLOAD DE FICHIERS -->
                             <div class="form-group mt-2 file-upload-group">
-                                <label>Fichier à produire (.stl, .3mf, .dxf)</label>
-                                <div class="file-drop-area @(UploadedFile != null ? (FileError == null ? "file-selected" : "file-error") : "")">
-                                    <InputFile OnChange="HandleFileSelected" accept=".stl,.3mf,.dxf,.obj" id="fileInput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" />
+                                <label>Fichiers à produire (.stl, .3mf, .dxf)</label>
+                                <div class="file-drop-area @(UploadedFiles.Any() ? "file-selected" : "")">
+                                    <InputFile OnChange="HandleFilesSelected" accept=".stl,.3mf,.dxf,.obj" multiple
+                                               id="fileInput" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" />
 
-                                    @if (UploadedFile == null)
+                                    @if (!UploadedFiles.Any())
                                     {
                                         <i class="fa-solid fa-cloud-arrow-up fa-2x"></i>
-                                        <span>Cliquez ou glissez votre fichier ici</span>
-                                        <small>Max 50 Mo</small>
+                                        <span>Cliquez ou glissez vos fichiers ici</span>
+                                        <small>Max 50 Mo par fichier</small>
                                     }
                                     else
                                     {
-                                        <i class="fa-solid @(FileError == null ? "fa-file-circle-check" : "fa-file-circle-xmark") fa-2x"
-                                           style="color: @(FileError == null ? "var(--status-success)" : "var(--status-error)");"></i>
-                                        <span class="file-name-display">@UploadedFile.Name</span>
-                                        <small>@Math.Round(UploadedFile.Size / 1024.0 / 1024.0, 2) Mo</small>
+                                        <i class="fa-solid fa-file-circle-check fa-2x" style="color: var(--status-success);"></i>
+                                        <span>@UploadedFiles.Count fichier(s) sélectionné(s)</span>
                                     }
                                 </div>
                                 @if (FileError != null)
@@ -117,6 +119,23 @@
                                     <span class="text-danger mt-1"><i class="fa-solid fa-triangle-exclamation"></i> @FileError</span>
                                 }
                             </div>
+
+                            @if (UploadedFiles.Any())
+                            {
+                                <div class="uploaded-files-list">
+                                    @foreach (var file in UploadedFiles)
+                                    {
+                                        <div class="uploaded-file-item">
+                                            <i class="fa-solid fa-file-code"></i>
+                                            <span class="file-name-display">@file.Name</span>
+                                            <small>@Math.Round(file.Size / 1024.0 / 1024.0, 2) Mo</small>
+                                            <button type="button" class="btn-remove-file" @onclick="() => RemoveFile(file)">
+                                                <i class="fa-solid fa-xmark"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
 
                             <div class="form-group checkbox-group mt-2">
                                 <InputCheckbox @bind-Value="TicketModel.TermsAccepted" id="terms" />
@@ -138,61 +157,90 @@
 
 @code {
     private PrintTicketModel TicketModel = new();
-    private IBrowserFile? UploadedFile;
+    private List<IBrowserFile> UploadedFiles = new();
     private bool IsSubmitted = false;
     private string? FileError;
     private int RandomTicketNumber = 0;
 
     private const long MaxFileSize = 1024 * 1024 * 50; // 50 Mo
+    private static readonly string[] AllowedExtensions = { ".stl", ".3mf", ".dxf", ".obj" };
 
-    private void HandleFileSelected(InputFileChangeEventArgs e)
+    private void HandleFilesSelected(InputFileChangeEventArgs e)
     {
         FileError = null;
-        var file = e.File;
 
-        // Validation 1 : La taille
-        if (file.Size > MaxFileSize)
+        foreach (var file in e.GetMultipleFiles(10))
         {
-            FileError = "Le fichier dépasse la limite autorisée de 50 Mo.";
-            UploadedFile = file; // On garde la réf pour afficher l'erreur en rouge
-            return;
+            if (file.Size > MaxFileSize)
+            {
+                FileError = $"{file.Name} dépasse la limite de 50 Mo.";
+                continue;
+            }
+
+            var ext = System.IO.Path.GetExtension(file.Name).ToLowerInvariant();
+            if (!AllowedExtensions.Contains(ext))
+            {
+                FileError = $"{file.Name} : format non supporté (.stl, .3mf, .dxf, .obj).";
+                continue;
+            }
+
+            // Éviter les doublons
+            if (!UploadedFiles.Any(f => f.Name == file.Name))
+                UploadedFiles.Add(file);
         }
+    }
 
-        // Validation 2 : Extensions autorisées
-        var extension = System.IO.Path.GetExtension(file.Name).ToLowerInvariant();
-        var allowedExtensions = new[] { ".stl", ".3mf", ".dxf", ".obj" };
-
-        if (!allowedExtensions.Contains(extension))
-        {
-            FileError = "Format non supporté. Veuillez utiliser .stl, .3mf, .dxf ou .obj.";
-            UploadedFile = file;
-            return;
-        }
-
-        UploadedFile = file;
+    private void RemoveFile(IBrowserFile file)
+    {
+        UploadedFiles.Remove(file);
+        if (!UploadedFiles.Any()) FileError = null;
     }
 
     private async Task HandleValidSubmit()
     {
-        if (UploadedFile == null || FileError != null)
+        if (!UploadedFiles.Any())
         {
-            if (UploadedFile == null) FileError = "Veuillez joindre un fichier à imprimer.";
+            FileError = "Veuillez joindre au moins un fichier à imprimer.";
             return;
         }
 
-        if (!TicketModel.TermsAccepted) return;
+        if (FileError != null || !TicketModel.TermsAccepted) return;
 
-        // --- SIMULATION ---
-        await Task.Delay(1000);
+        var requestType = TicketModel.Technology switch
+        {
+            "FDM" => RequestType.FDM,
+            "SLA" => RequestType.SLA,
+            "Laser" => RequestType.Laser,
+            _ => RequestType.Other
+        };
 
-        RandomTicketNumber = new Random().Next(1000, 9999);
+        var currentMember = AuthState.CurrentMember;
+
+        var request = new Request
+        {
+            Type = requestType,
+            Title = TicketModel.ProjectName,
+            Description = TicketModel.Description,
+            MaterialPreference = TicketModel.MaterialPref,
+            RequestedByMemberId = currentMember?.Id ?? 0
+        };
+
+        // Préparer les fichiers
+        var files = new List<(Stream, string, long)>();
+        foreach (var file in UploadedFiles)
+        {
+            files.Add((file.OpenReadStream(MaxFileSize), file.Name, file.Size));
+        }
+
+        var savedRequest = await RequestService.CreateRequestAsync(request, files);
+        RandomTicketNumber = savedRequest.Id;
         IsSubmitted = true;
     }
 
     private void ResetForm()
     {
         TicketModel = new PrintTicketModel();
-        UploadedFile = null;
+        UploadedFiles = new();
         FileError = null;
         IsSubmitted = false;
     }

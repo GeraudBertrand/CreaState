@@ -1,7 +1,13 @@
-﻿@page "/private"
+@page "/private"
 @layout PrivateLayout
+@attribute [Authorize]
 
+@using Microsoft.EntityFrameworkCore
 @inject PageHeaderService HeaderService
+@inject CreaState.Data.AppDbContext Db
+@inject PrinterService PrinterService
+@inject InventoryService InventoryService
+@inject MaintenanceService MaintenanceService
 
 <PageTitle>Créalab - Dashboard</PageTitle>
 
@@ -10,22 +16,22 @@
         <div class="kpi-card">
             <div class="kpi-icon kpi-blue"><i class="fa-solid fa-users"></i></div>
             <div class="kpi-content">
-                <h3>12</h3>
-                <p>Membres présents</p>
+                <h3>@MemberCount</h3>
+                <p>Membres actifs</p>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon kpi-magenta"><i class="fa-solid fa-print"></i></div>
             <div class="kpi-content">
-                <h3>3/5</h3>
+                <h3>@ActivePrinterCount/@TotalPrinterCount</h3>
                 <p>Imprimantes actives</p>
             </div>
         </div>
         <div class="kpi-card">
             <div class="kpi-icon kpi-orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div class="kpi-content">
-                <h3>1</h3>
-                <p>Incident signalé</p>
+                <h3>@BreakdownCount</h3>
+                <p>Incident(s) signalé(s)</p>
             </div>
         </div>
     </div>
@@ -36,6 +42,24 @@
             @if(latestAnnouncement != null)
             {
                 <AnnouncementWidget announcement="@latestAnnouncement" />
+            }
+
+            <!-- Alertes stock bas -->
+            @if (LowStockItems.Any())
+            {
+                <div class="widget-card" style="border-left: 4px solid var(--accent-orange);">
+                    <div class="widget-title">
+                        <span><i class="fa-solid fa-boxes-stacked"></i> Stock bas</span>
+                        <a href="private/inventory" style="font-size: 0.8rem; color: var(--primary-blue);">Voir inventaire</a>
+                    </div>
+                    @foreach (var item in LowStockItems.Take(5))
+                    {
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem;">
+                            <span>@item.Name</span>
+                            <span class="@item.StockCssClass" style="font-weight: 600;">@item.QuantityRemaining @item.Unit</span>
+                        </div>
+                    }
+                </div>
             }
 
             <div class="widget-card">
@@ -58,7 +82,7 @@
                     </div>
                 }
 
-            
+
             </div>
         </div>
 
@@ -67,24 +91,42 @@
             {
                 <EventWidget Event="@NextEvent" />
             }
-            
+
+            <!-- Demandes en attente -->
+            @if (PendingRequestCount > 0)
+            {
+                <div class="widget-card">
+                    <div class="widget-title">
+                        <span><i class="fa-solid fa-ticket"></i> Demandes</span>
+                        <a href="private/requests" style="font-size: 0.8rem; color: var(--primary-blue);">Gérer</a>
+                    </div>
+                    <div style="text-align: center; padding: 1rem;">
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--primary-blue);">@PendingRequestCount</div>
+                        <p style="color: var(--text-muted); margin: 0;">demande(s) en attente</p>
+                    </div>
+                </div>
+            }
+
             <div class="widget-card">
                 <div class="widget-title">
                     <span><i class="fa-solid fa-screwdriver-wrench"></i> Matériel</span>
+                    <a href="private/maintenance" style="font-size: 0.8rem; color: var(--primary-blue);">Maintenance</a>
                 </div>
                 <ul style="list-style: none; padding: 0;">
-                    <li style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
-                        <span><i class="fa-solid fa-check" style="color: var(--status-success);"></i> Découpeuse Laser</span>
-                        <span style="font-weight: bold; color: var(--status-success);">OK</span>
-                    </li>
-                    <li style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
-                        <span><i class="fa-solid fa-check" style="color: var(--status-success);"></i> Imprimante Résine</span>
-                        <span style="font-weight: bold; color: var(--status-success);">OK</span>
-                    </li>
-                    <li style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
-                        <span><i class="fa-solid fa-triangle-exclamation" style="color: var(--status-warning);"></i> CNC</span>
-                        <span style="font-weight: bold; color: var(--status-warning);">En maintenance</span>
-                    </li>
+                    @foreach (var printer in PrinterList)
+                    {
+                        var hasBreakdown = BreakdownPrinterIds.Contains(printer.Id);
+                        <li style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
+                            <span>
+                                <i class="fa-solid @(hasBreakdown ? "fa-triangle-exclamation" : "fa-check")"
+                                   style="color: @(hasBreakdown ? "var(--status-error)" : "var(--status-success)");"></i>
+                                @printer.Name
+                            </span>
+                            <span style="font-weight: bold; color: @(hasBreakdown ? "var(--status-error)" : "var(--status-success)");">
+                                @(hasBreakdown ? "En panne" : "OK")
+                            </span>
+                        </li>
+                    }
                 </ul>
             </div>
         </div>
@@ -92,142 +134,59 @@
 
 </div>
 @code {
+    // KPIs
+    private int MemberCount;
+    private int ActivePrinterCount;
+    private int TotalPrinterCount;
+    private int BreakdownCount;
+    private int PendingRequestCount;
 
-    // SOURCE LIST
+    // Data lists
     private List<Formation>? FormationsList;
     private List<Announcement>? AllAnnouncements;
     private List<Event>? Events;
+    private List<InventoryItem> LowStockItems = new();
+    private List<Printer> PrinterList = new();
+    private HashSet<string> BreakdownPrinterIds = new();
 
-    // MISCELLANOUS
     private Announcement? latestAnnouncement;
     private Event? NextEvent;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         HeaderService.SetTitle("Bienvenue au Créalab", "Résumé des activités et informations importantes");
-        LoadMockData();
+
+        // KPIs depuis la BDD
+        MemberCount = await Db.Members.CountAsync(m => m.IsActive);
+        PendingRequestCount = await Db.Requests.CountAsync(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.UnderReview);
+
+        // Imprimantes
+        PrinterList = PrinterService.GetPrinters();
+        TotalPrinterCount = PrinterList.Count;
+        ActivePrinterCount = PrinterList.Count(p => p.Status == PrinterStatus.Printing || p.Status == PrinterStatus.Idle);
+
+        // Pannes
+        var breakdowns = await MaintenanceService.GetBreakdownReportsAsync();
+        BreakdownPrinterIds = breakdowns.Select(b => b.PrinterId).ToHashSet();
+        BreakdownCount = BreakdownPrinterIds.Count;
+
+        // Stock bas
+        LowStockItems = await InventoryService.GetLowStockItemsAsync();
+
+        // Formations, Annonces, Événements depuis BDD
+        FormationsList = await Db.Formations.OrderBy(f => f.Date).Take(4).ToListAsync();
+        AllAnnouncements = await Db.Announcements.OrderByDescending(a => a.PublishDate).ToListAsync();
+        Events = await Db.Events.OrderBy(e => e.Date).ToListAsync();
+
+        #if DEBUG
+        // Si pas de données en BDD, charger les mocks
+        if (FormationsList.Count == 0) LoadMockFormations();
+        if (AllAnnouncements.Count == 0) LoadMockAnnouncements();
+        if (Events == null || Events.Count == 0) LoadMockEvents();
+        #endif
+
         GetLastAnnouncement();
         GetNextEvent();
-    }
-
-    private void LoadMockData()
-    {
-        FormationsList = new List<Formation>
-        {
-            new Formation
-            {
-                Id = 1,
-                Title = "Initiation Impression 3D (FDM)",
-                Description = "Apprenez les bases du tranchage (Slicer) et lancez votre première impression sur Bambu Lab A1.",
-                Instructor = "Alex (Resp. Technique)",
-                Date = new DateOnly(2023, 11, 14),
-                StartTime = new TimeOnly(14, 00),
-                Duration = TimeSpan.FromHours(2)
-            },
-            new Formation
-            {
-                Id = 2,
-                Title = "Sécurité & Utilisation Découpeuse Laser",
-                Description = "Formation obligatoire pour utiliser la Trotec en autonomie. Apportez vos fichiers DXF.",
-                Instructor = "Sarah",
-                Date = new DateOnly(2023, 11, 18),
-                StartTime = new TimeOnly(10, 00),
-                Duration = TimeSpan.FromHours(2)
-            },
-            new Formation
-            {
-                Id = 3,
-                Title = "Atelier Cosplay : Armures & Props",
-                Description = "Introduction au travail de la mousse EVA et du Worbla. Focus sur les techniques de peinture et vieillissement.",
-                Instructor = "Responsable Partenariat",
-                Date = new DateOnly(2023, 11, 22),
-                StartTime = new TimeOnly(17, 30),
-                Duration = TimeSpan.FromHours(3)
-            },
-            new Formation
-            {
-                Id = 4,
-                Title = "Initiation Soudure & PCB",
-                Description = "Bases de la soudure à l'étain et réparation de petits composants électroniques.",
-                Instructor = "Pole Élec",
-                Date = new DateOnly(2023, 11, 25),
-                StartTime = new TimeOnly(13, 00),
-                Duration = TimeSpan.FromHours(1.5)
-            }
-        };
-
-        AllAnnouncements = new List<Announcement>
-        {
-            new Announcement
-            {
-                Id = 1,
-                Title = "Fermeture exceptionnelle",
-                Message = "Le Fablab fermera ses portes plus tôt ce vendredi (17h00) pour l'inventaire trimestriel. Merci de libérer les établis.",
-                Severity = AnnouncementSeverity.Danger,
-                PublishDate = DateTime.Now.AddDays(-1),
-                DisplayDuration = TimeSpan.FromDays(3)
-            },
-
-            new Announcement
-            {
-                Id = 2,
-                Title = "Maintenance CNC",
-                Message = "La fraiseuse numérique est en cours de calibrage suite à un changement de broche. Indisponible jusqu'à nouvel ordre.",
-                Severity = AnnouncementSeverity.Warning,
-                PublishDate = DateTime.Now.AddHours(-4),
-                DisplayDuration = TimeSpan.FromHours(48)
-            },
-
-            new Announcement
-            {
-                Id = 3,
-                Title = "Arrivage de PLA",
-                Message = "Nous avons reçu les nouvelles bobines (PLA Mat & PETG) ! N'oubliez pas de peser vos impressions.",
-                Severity = AnnouncementSeverity.Info,
-                PublishDate = DateTime.Now.AddDays(-2),
-                DisplayDuration = TimeSpan.FromDays(7)
-            },
-
-            new Announcement
-            {
-                Id = 4,
-                Title = "Pizza Party de rentrée",
-                Message = "C'était sympa !",
-                Severity = AnnouncementSeverity.Info,
-                PublishDate = DateTime.Now.AddDays(-10),
-                DisplayDuration = TimeSpan.FromDays(1)
-            }
-        };
-
-        Events = new List<Event>
-        {
-            new Event
-            {
-                Id = 1,
-                Title = "Hackathon ESILV",
-                Description = "Thème : 'Smart Campus'. Venez coder en équipe !",
-                Date = DateTime.Now.AddDays(12), // Dans 12 jours
-                IconClass = "fa-rocket",
-                Location = "Atrium"
-            },
-             new Event
-            {
-                Id = 2,
-                Title = "Soirée Jeux & Pizza",
-                Description = "Détente après les partiels au foyer.",
-                Date = DateTime.Now.AddDays(25),
-                IconClass = "fa-pizza-slice",
-                Location = "Foyer"
-            },
-            new Event
-            {
-                Id = 3,
-                Title = "Workshop Ancien",
-                Description = "C'est fini.",
-                Date = DateTime.Now.AddDays(-5), // Passé
-                IconClass = "fa-history"
-            }
-        };
     }
 
     private void GetLastAnnouncement()
@@ -235,7 +194,7 @@
         if(AllAnnouncements != null && AllAnnouncements.Count != 0)
         {
             latestAnnouncement = AllAnnouncements
-            .Where(a => a.IsActive)  
+            .Where(a => a.IsActive)
             .OrderByDescending(a => a.PublishDate)
             .OrderByDescending(a => a.Severity)
             .FirstOrDefault();
@@ -251,7 +210,31 @@
             .OrderBy(e => e.Date)
             .FirstOrDefault();
         }
-        
     }
 
+    // Fallback mock data
+    private void LoadMockFormations()
+    {
+        FormationsList = new List<Formation>
+        {
+            new() { Id = 1, Title = "Initiation Impression 3D (FDM)", Description = "Apprenez les bases du tranchage et lancez votre première impression.", Instructor = "Resp. Technique", Date = DateOnly.FromDateTime(DateTime.Now.AddDays(7)), StartTime = new TimeOnly(14, 00), Duration = TimeSpan.FromHours(2) },
+            new() { Id = 2, Title = "Sécurité Découpeuse Laser", Description = "Formation obligatoire pour utiliser la Trotec en autonomie.", Instructor = "Sarah", Date = DateOnly.FromDateTime(DateTime.Now.AddDays(14)), StartTime = new TimeOnly(10, 00), Duration = TimeSpan.FromHours(2) },
+        };
+    }
+
+    private void LoadMockAnnouncements()
+    {
+        AllAnnouncements = new List<Announcement>
+        {
+            new() { Id = 1, Title = "Bienvenue sur CreaState !", Message = "La plateforme de gestion du Créalab est en ligne.", Severity = AnnouncementSeverity.Info, PublishDate = DateTime.Now, DisplayDuration = TimeSpan.FromDays(30) }
+        };
+    }
+
+    private void LoadMockEvents()
+    {
+        Events = new List<Event>
+        {
+            new() { Id = 1, Title = "Prochaine réunion Créalab", Description = "Ordre du jour à définir.", Date = DateTime.Now.AddDays(7), IconClass = "fa-calendar-day", Location = "Fablab" }
+        };
+    }
 }

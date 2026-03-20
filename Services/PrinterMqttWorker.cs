@@ -7,17 +7,27 @@ namespace CreaState.Services
     public class PrinterMqttWorker : BackgroundService
     {
         private readonly PrinterService _printerService;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<PrinterMqttWorker> _logger;
 
-        public PrinterMqttWorker(PrinterService printerService, ILogger<PrinterMqttWorker> logger)
+        public PrinterMqttWorker(PrinterService printerService, IServiceScopeFactory scopeFactory, ILogger<PrinterMqttWorker> logger)
         {
             _printerService = printerService;
+            _scopeFactory = scopeFactory;
             _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("🚀 Démarrage du service MQTT Bambu Lab...");
+
+            // Charger les imprimantes depuis la BDD
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<CreaState.Data.AppDbContext>();
+                var dbPrinters = db.Printers.Where(p => p.IsEnabled).ToList();
+                _printerService.LoadPrintersFromDb(dbPrinters);
+            }
 
             var printers = _printerService.GetPrinters();
             var tasks = new List<Task>();

@@ -1,0 +1,49 @@
+@if (Show)
+{
+    <div class="modal-overlay" @onclick="Close">
+        <div class="modal-panel" @onclick:stopPropagation="true">
+            <div class="modal-header modal-header-danger">
+                <div class="modal-icon-circle danger">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <h5>Signaler une panne</h5>
+                    <span class="modal-subtitle">@PrinterName</span>
+                </div>
+                <button class="modal-close" @onclick="Close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Description du problème</label>
+                    <textarea class="form-input" @bind="Description" rows="4" placeholder="Décrivez le problème rencontré..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-action btn-secondary" @onclick="Close">Annuler</button>
+                <button class="btn-action btn-danger-fill" @onclick="Submit" disabled="@string.IsNullOrWhiteSpace(Description)">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Signaler
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Show { get; set; }
+    [Parameter] public string PrinterName { get; set; } = "";
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+
+    private string Description = "";
+
+    private async Task Close() => await OnClose.InvokeAsync();
+
+    private async Task Submit()
+    {
+        if (string.IsNullOrWhiteSpace(Description)) return;
+        await OnSubmit.InvokeAsync(Description);
+        Description = "";
+    }
+}

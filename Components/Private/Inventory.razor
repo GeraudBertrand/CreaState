@@ -1,0 +1,220 @@
+@page "/private/inventory"
+@layout PrivateLayout
+@attribute [Authorize]
+
+@inject PageHeaderService HeaderService
+@inject InventoryService InventoryService
+@inject AuthStateProvider AuthState
+
+<PageTitle>Inventaire - Créalab</PageTitle>
+
+<SectionContent SectionName="HeaderActions">
+    <div class="stats-summary">
+        <div class="stat-box">
+            <span class="stat-value">@Items.Count</span>
+            <span class="stat-label">Articles</span>
+        </div>
+        <div class="stat-box @(LowStockItems.Any() ? "stat-warning" : "")">
+            <span class="stat-value">@LowStockItems.Count</span>
+            <span class="stat-label">Stock bas</span>
+        </div>
+    </div>
+</SectionContent>
+
+<div class="main-container">
+
+    <!-- Filtres et actions -->
+    <div class="filter-bar">
+        <div class="filter-group">
+            <select class="form-input" @bind="FilterCategory" @bind:after="LoadItems">
+                <option value="">Toutes catégories</option>
+                @foreach (var cat in Enum.GetValues<InventoryCategory>())
+                {
+                    <option value="@cat">@cat.GetDisplayName()</option>
+                }
+            </select>
+        </div>
+        @if (IsManager)
+        {
+            <button class="btn-action btn-primary-fill" @onclick="OpenAddModal">
+                <i class="fa-solid fa-plus"></i> Ajouter un article
+            </button>
+        }
+    </div>
+
+    <!-- Alerte stock bas -->
+    @if (LowStockItems.Any())
+    {
+        <div class="alert-low-stock">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div>
+                <strong>Stock bas</strong>
+                <div class="low-stock-badges">
+                    @foreach (var item in LowStockItems)
+                    {
+                        <span class="badge-low">@item.Name — @item.QuantityRemaining @item.Unit</span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Tableau inventaire -->
+    @if (Items.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <p>Aucun article en stock.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-container">
+            <div class="table-scroll">
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Article</th>
+                            <th>Catégorie</th>
+                            <th>Type / Couleur</th>
+                            <th>Stock</th>
+                            <th>Niveau</th>
+                            @if (IsManager)
+                            {
+                                <th>Actions</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Items)
+                        {
+                            <tr class="table-row @(item.IsLowStock ? "row-low" : "")">
+                                <td>
+                                    <div class="article-cell">
+                                        <strong>@item.Name</strong>
+                                        @if (!string.IsNullOrEmpty(item.Brand))
+                                        {
+                                            <span class="article-brand">@item.Brand</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td><span class="category-label">@item.Category.GetDisplayName()</span></td>
+                                <td>
+                                    <div class="material-cell">
+                                        @if (!string.IsNullOrEmpty(item.Color))
+                                        {
+                                            <span class="color-dot" style="background: @item.Color;"></span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.MaterialType))
+                                        {
+                                            <span>@item.MaterialType</span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.Color))
+                                        {
+                                            <span class="color-name">@item.Color</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="stock-value @(item.IsLowStock ? "stock-danger" : "")">
+                                        @item.QuantityRemaining
+                                    </span>
+                                    <span class="stock-total">/ @item.InitialQuantity @item.Unit</span>
+                                </td>
+                                <td>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar-bg">
+                                            <div class="progress-bar-fill @(item.IsLowStock ? "fill-danger" : item.PercentageRemaining < 50 ? "fill-warning" : "fill-ok")"
+                                                 style="width: @(item.PercentageRemaining)%;"></div>
+                                        </div>
+                                        <span class="progress-label @(item.IsLowStock ? "stock-danger" : "")">@item.PercentageRemaining%</span>
+                                    </div>
+                                </td>
+                                @if (IsManager)
+                                {
+                                    <td>
+                                        @if (EditingItemId == item.Id)
+                                        {
+                                            <div class="inline-edit">
+                                                <input type="number" class="form-input form-input-sm" @bind="EditQuantity" />
+                                                <button class="btn-icon-sm success" @onclick="() => SaveQuantity(item.Id)"><i class="fa-solid fa-check"></i></button>
+                                                <button class="btn-icon-sm muted" @onclick="() => EditingItemId = 0"><i class="fa-solid fa-xmark"></i></button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-icon-action" @onclick="() => StartEdit(item)" title="Modifier la quantité">
+                                                <i class="fa-solid fa-pen"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<CreaState.Components.Dialog.AddInventoryItemDialog
+    Show="ShowAddForm"
+    OnClose="() => ShowAddForm = false"
+    OnSubmit="HandleAddItem" />
+
+@code {
+    private List<InventoryItem> Items = new();
+    private List<InventoryItem> LowStockItems = new();
+    private string FilterCategory = "";
+    private bool IsManager = false;
+    private bool ShowAddForm = false;
+
+    // Edition inline
+    private int EditingItemId = 0;
+    private double EditQuantity = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        HeaderService.SetTitle("Inventaire", "Stock de matériaux et consommables");
+
+        IsManager = AuthState.HasPermission("manage_inventory");
+
+        await LoadItems();
+    }
+
+    private async Task LoadItems()
+    {
+        InventoryCategory? cat = null;
+        if (Enum.TryParse<InventoryCategory>(FilterCategory, out var parsed))
+            cat = parsed;
+
+        Items = await InventoryService.GetAllItemsAsync(cat);
+        LowStockItems = await InventoryService.GetLowStockItemsAsync();
+    }
+
+    private void OpenAddModal()
+    {
+        ShowAddForm = true;
+    }
+
+    private void StartEdit(InventoryItem item)
+    {
+        EditingItemId = item.Id;
+        EditQuantity = item.QuantityRemaining;
+    }
+
+    private async Task SaveQuantity(int itemId)
+    {
+        await InventoryService.UpdateQuantityAsync(itemId, EditQuantity);
+        EditingItemId = 0;
+        await LoadItems();
+    }
+
+    private async Task HandleAddItem(InventoryItem item)
+    {
+        await InventoryService.AddItemAsync(item);
+        ShowAddForm = false;
+        await LoadItems();
+    }
+}
