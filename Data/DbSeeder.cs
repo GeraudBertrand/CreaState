@@ -17,6 +17,7 @@ namespace CreaState.Data
                 {
                     new() { Name = "Eleve", DisplayName = "Élève", Description = "Étudiant inscrit (rôle par défaut)", IsDefault = true },
                     new() { Name = "Membre", DisplayName = "Membre", Description = "Membre actif de l'association" },
+                    new() { Name = "AgentFab", DisplayName = "Agent Fab", Description = "Agent fablab, gère les demandes d'impression" },
                     new() { Name = "TechManager", DisplayName = "Resp. Technique", Description = "Responsable technique du fablab" },
                     new() { Name = "ComManager", DisplayName = "Resp. Communication", Description = "Responsable communication" },
                     new() { Name = "EventManager", DisplayName = "Resp. Événementiel", Description = "Responsable événementiel" },
@@ -37,6 +38,7 @@ namespace CreaState.Data
                 {
                     new() { Code = "view_dashboard", DisplayName = "Voir le dashboard", Category = "Navigation" },
                     new() { Code = "view_printers", DisplayName = "Voir les imprimantes", Category = "Navigation" },
+                    new() { Code = "access_private", DisplayName = "Accès espace privé", Category = "Navigation" },
                     new() { Code = "submit_requests", DisplayName = "Soumettre une demande", Category = "Demandes" },
                     new() { Code = "manage_requests", DisplayName = "Gérer les demandes", Category = "Demandes" },
                     new() { Code = "view_inventory", DisplayName = "Voir l'inventaire", Category = "Inventaire" },
@@ -61,33 +63,45 @@ namespace CreaState.Data
                 Role R(string name) => roles.First(r => r.Name == name);
                 Permission P(string code) => perms.First(p => p.Code == code);
 
-                // Permissions communes à tous
-                var allPermCodes = new[] { "view_dashboard", "view_printers", "submit_requests" };
-                // Permissions Membre+
-                var membrePermCodes = new[] { "view_inventory", "report_breakdown", "view_members" };
-                // Permissions Responsable+
-                var responsablePermCodes = new[] { "manage_requests", "manage_inventory", "manage_maintenance" };
-                // Permissions Bureau (VP + Président)
-                var bureauPermCodes = new[] { "manage_members", "manage_printers", "admin_access" };
-
-                var allRoleNames = roles.Select(r => r.Name).ToArray();
-                var membreRoleNames = allRoleNames.Where(n => n != "Eleve").ToArray();
-                var responsableRoleNames = new[] { "TechManager", "ComManager", "EventManager", "PartnershipManager", "Secretary", "Treasurer", "VicePresident", "President" };
-                var bureauRoleNames = new[] { "VicePresident", "President" };
-
                 var rolePermissions = new List<RolePermission>();
+
+                void Add(string roleName, string permCode)
+                    => rolePermissions.Add(new RolePermission { RoleId = R(roleName).Id, PermissionId = P(permCode).Id });
 
                 void AddMatrix(string[] roleNames, string[] permCodes)
                 {
                     foreach (var roleName in roleNames)
                         foreach (var permCode in permCodes)
-                            rolePermissions.Add(new RolePermission { RoleId = R(roleName).Id, PermissionId = P(permCode).Id });
+                            Add(roleName, permCode);
                 }
 
-                AddMatrix(allRoleNames, allPermCodes);
-                AddMatrix(membreRoleNames, membrePermCodes);
-                AddMatrix(responsableRoleNames, responsablePermCodes);
-                AddMatrix(bureauRoleNames, bureauPermCodes);
+                var allRoleNames = roles.Select(r => r.Name).ToArray();
+                var membreAndAbove = allRoleNames.Where(n => n != "Eleve").ToArray();
+                var techManagerRoles = new[] { "TechManager" };
+                var secretaryPlus = new[] { "Secretary", "Treasurer" };
+                var bureauRoles = new[] { "VicePresident", "President" };
+
+                // Permissions communes à TOUS (y compris Élève)
+                AddMatrix(allRoleNames, new[] { "view_dashboard", "submit_requests" });
+
+                // Permissions Membre+ (tous sauf Élève)
+                AddMatrix(membreAndAbove, new[] { "access_private", "view_members", "report_breakdown" });
+
+                // AgentFab : manage_requests
+                Add("AgentFab", "manage_requests");
+
+                // TechManager : view_printers, manage_printers, manage_maintenance
+                AddMatrix(techManagerRoles, new[] { "view_printers", "manage_printers", "manage_maintenance" });
+
+                // Secretary, Treasurer : view_printers, manage_printers, manage_maintenance, view_inventory, manage_inventory
+                AddMatrix(secretaryPlus, new[] { "view_printers", "manage_printers", "manage_maintenance", "view_inventory", "manage_inventory" });
+
+                // Bureau (VP + Président) : TOUT
+                AddMatrix(bureauRoles, new[] {
+                    "view_printers", "manage_printers", "manage_maintenance",
+                    "view_inventory", "manage_inventory",
+                    "manage_requests", "manage_members", "admin_access"
+                });
 
                 context.RolePermissions.AddRange(rolePermissions);
                 await context.SaveChangesAsync();
@@ -146,12 +160,15 @@ namespace CreaState.Data
                     LastName = "Créalab",
                     Email = "admin@edu.devinci.fr",
                     PasswordHash = null,
-                    RoleId = presidentRole.Id,
                     ClassYear = ClassYearEnum.A3,
                     IsActive = true,
                     JoinDate = DateTime.UtcNow
                 };
                 context.Members.Add(admin);
+                await context.SaveChangesAsync();
+
+                // Assigner le rôle Président via MemberRole
+                context.MemberRoles.Add(new MemberRole { MemberId = admin.Id, RoleId = presidentRole.Id });
             }
 
             await context.SaveChangesAsync();

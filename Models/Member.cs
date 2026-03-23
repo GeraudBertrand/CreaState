@@ -4,8 +4,7 @@ namespace CreaState.Models
 {
     public class Member : User
     {
-        public int RoleId { get; set; }
-        public Role? Role { get; set; }
+        public ICollection<MemberRole> MemberRoles { get; set; } = [];
 
         public ClassYearEnum ClassYear { get; set; } = ClassYearEnum.Other;
 
@@ -14,13 +13,16 @@ namespace CreaState.Models
         public DateTime JoinDate { get; set; } = DateTime.UtcNow;
 
         [NotMapped]
-        public bool IsBoardMember => RoleId != 1;
+        public IEnumerable<Role> Roles => MemberRoles.Select(mr => mr.Role!);
+
+        [NotMapped]
+        public bool IsBoardMember => MemberRoles.Any(mr => mr.Role?.Name != "Eleve");
 
         [NotMapped]
         public string AvatarColor => IsBoardMember ? "var(--accent-magenta)" : "var(--primary-blue)";
 
         [NotMapped]
-        public string RoleLabel => Role?.DisplayName ?? "";
+        public string RoleLabel => string.Join(", ", Roles.Select(r => r.DisplayName));
 
         [NotMapped]
         public string ClassYearLabel => ClassYear.GetDisplayName();

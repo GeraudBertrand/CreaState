@@ -41,7 +41,6 @@ namespace CreaState.Services
                 FirstName = firstName.Trim(),
                 LastName = lastName.Trim(),
                 Email = email,
-                RoleId = defaultRole.Id,
                 ClassYear = classYear,
                 IsActive = true,
                 JoinDate = DateTime.UtcNow,
@@ -53,6 +52,10 @@ namespace CreaState.Services
             _db.Members.Add(member);
             await _db.SaveChangesAsync();
 
+            // Assigner le rôle par défaut via MemberRole
+            _db.MemberRoles.Add(new MemberRole { MemberId = member.Id, RoleId = defaultRole.Id });
+            await _db.SaveChangesAsync();
+
             return (true, null);
         }
 
@@ -61,7 +64,8 @@ namespace CreaState.Services
             email = email.Trim().ToLowerInvariant();
 
             var member = await _db.Members
-                .Include(m => m.Role)
+                .Include(m => m.MemberRoles)
+                    .ThenInclude(mr => mr.Role)
                     .ThenInclude(r => r!.RolePermissions)
                     .ThenInclude(rp => rp.Permission)
                 .FirstOrDefaultAsync(m => m.Email == email && m.IsActive);

@@ -160,7 +160,26 @@ namespace CreaState.Services
                 .Include(r => r.AssignedTo)
                 .Include(r => r.Printer)
                 .Include(r => r.Files)
+                .Include(r => r.Comments).ThenInclude(c => c.Author)
                 .FirstOrDefaultAsync(r => r.Id == id);
+        }
+
+        /// <summary>
+        /// Ajoute un commentaire à une demande.
+        /// </summary>
+        public async Task<RequestComment> AddCommentAsync(int requestId, int memberId, string message)
+        {
+            var comment = new RequestComment
+            {
+                RequestId = requestId,
+                AuthorMemberId = memberId,
+                Message = message,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.RequestComments.Add(comment);
+            await _db.SaveChangesAsync();
+            return comment;
         }
 
         public async Task<bool> UpdateStatusAsync(int requestId, RequestStatus newStatus, int? reviewerId = null, string? reason = null)

@@ -1,6 +1,6 @@
 @page "/private"
 @layout PrivateLayout
-@attribute [Authorize]
+@attribute [Authorize(Policy = "PrivateAccess")]
 
 @using Microsoft.EntityFrameworkCore
 @inject PageHeaderService HeaderService
@@ -180,6 +180,10 @@
 
         #if DEBUG
         // Si pas de données en BDD, charger les mocks
+        if (MemberCount <= 1) MemberCount = 12;
+        if (PendingRequestCount == 0) PendingRequestCount = 3;
+        if (LowStockItems.Count == 0) LoadMockLowStock();
+        if (BreakdownCount == 0) { BreakdownPrinterIds = new HashSet<string> { "printer-bonnie" }; BreakdownCount = 1; }
         if (FormationsList.Count == 0) LoadMockFormations();
         if (AllAnnouncements.Count == 0) LoadMockAnnouncements();
         if (Events == null || Events.Count == 0) LoadMockEvents();
@@ -213,6 +217,15 @@
     }
 
     // Fallback mock data
+    private void LoadMockLowStock()
+    {
+        LowStockItems = new List<InventoryItem>
+        {
+            new() { Id = 2, Name = "PLA Blanc 1kg", Category = InventoryCategory.Filament, QuantityRemaining = 150, InitialQuantity = 1000, Unit = "g", LowStockThreshold = 200 },
+            new() { Id = 4, Name = "ABS Rouge 750g", Category = InventoryCategory.Filament, QuantityRemaining = 90, InitialQuantity = 750, Unit = "g", LowStockThreshold = 150 },
+        };
+    }
+
     private void LoadMockFormations()
     {
         FormationsList = new List<Formation>

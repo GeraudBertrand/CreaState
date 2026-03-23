@@ -202,7 +202,7 @@
                                     <td>@m.ClassYearLabel</td>
                                     <td>
                                         <select class="form-select" style="min-width: 160px; font-size: 0.85rem;"
-                                                value="@m.RoleId"
+                                                value="@(m.MemberRoles.FirstOrDefault()?.RoleId ?? 0)"
                                                 disabled="@isSelf"
                                                 @onchange="(e) => OnRoleChanged(m, e)">
                                             @foreach (var role in AllRoles)
@@ -292,7 +292,8 @@
     {
         if (int.TryParse(e.Value?.ToString(), out var roleId))
         {
-            if (roleId != member.RoleId)
+            var currentRoleId = member.MemberRoles.FirstOrDefault()?.RoleId ?? 0;
+            if (roleId != currentRoleId)
                 PendingRoleChanges[member.Id] = roleId;
             else
                 PendingRoleChanges.Remove(member.Id);

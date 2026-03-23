@@ -1,0 +1,270 @@
+@page "/public/my-requests/{Id:int}"
+@layout PublicLayout
+@attribute [Authorize]
+
+@inject RequestService RequestService
+@inject AuthStateProvider AuthState
+@inject NavigationManager NavManager
+
+<PageTitle>Demande #@Id - Créalab</PageTitle>
+
+<div class="main-container theme-industrial">
+    <div class="detail-wrapper">
+        <button class="btn-back" @onclick="GoBack">
+            <i class="fa-solid fa-arrow-left"></i> Mes demandes
+        </button>
+
+        @if (Request == null)
+        {
+            <div class="card-clean text-center" style="padding: 3rem;">
+                <i class="fa-solid fa-lock fa-3x" style="color: var(--text-muted); margin-bottom: 1rem;"></i>
+                <p style="color: var(--text-muted);">Demande introuvable ou accès non autorisé.</p>
+            </div>
+        }
+        else
+        {
+            <!-- En-tête -->
+            <div class="card-clean request-header-card">
+                <div class="request-header-row">
+                    <div>
+                        <h2 class="request-title">@Request.Title</h2>
+                        <span class="request-id">#CR-@Request.Id</span>
+                    </div>
+                    <span class="badge @Request.StatusCssClass badge-lg">@Request.StatusLabel</span>
+                </div>
+
+                <div class="request-info-grid">
+                    <div class="info-item">
+                        <small>Type</small>
+                        <strong>@Request.TypeLabel</strong>
+                    </div>
+                    <div class="info-item">
+                        <small>Matériau</small>
+                        <strong>@(Request.MaterialPreference ?? "Non spécifié")</strong>
+                    </div>
+                    <div class="info-item">
+                        <small>Créée le</small>
+                        <strong>@Request.CreatedAt.ToString("dd/MM/yyyy à HH:mm")</strong>
+                    </div>
+                    @if (Request.CompletedAt.HasValue)
+                    {
+                        <div class="info-item">
+                            <small>Terminée le</small>
+                            <strong>@Request.CompletedAt.Value.ToString("dd/MM/yyyy à HH:mm")</strong>
+                        </div>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(Request.Description))
+                {
+                    <div class="description-block">
+                        <small>Description</small>
+                        <p>@Request.Description</p>
+                    </div>
+                }
+
+                @if (Request.Status == RequestStatus.Rejected && !string.IsNullOrEmpty(Request.RejectionReason))
+                {
+                    <div class="rejection-block">
+                        <strong><i class="fa-solid fa-circle-xmark"></i> Raison du rejet :</strong>
+                        <p>@Request.RejectionReason</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Fichiers -->
+            <div class="card-clean mt-section">
+                <div class="section-header">
+                    <h5><i class="fa-solid fa-paperclip"></i> Fichiers (@Request.Files.Count)</h5>
+                    @if (CanEditFiles)
+                    {
+                        <label class="btn-add-file">
+                            <i class="fa-solid fa-plus"></i> Ajouter
+                            <InputFile OnChange="HandleAddFile" accept=".stl,.3mf,.dxf,.obj" style="display: none;" />
+                        </label>
+                    }
+                </div>
+
+                @if (!Request.Files.Any())
+                {
+                    <p class="text-muted-center">Aucun fichier joint.</p>
+                }
+                else
+                {
+                    <div class="files-list">
+                        @foreach (var file in Request.Files.OrderBy(f => f.UploadedAt))
+                        {
+                            <div class="file-row">
+                                <div class="file-info">
+                                    <i class="fa-solid fa-file-code" style="color: var(--primary-blue);"></i>
+                                    <div class="file-details">
+                                        <a href="@file.FilePath" target="_blank" class="file-name">@file.OriginalFileName</a>
+                                        <small>@file.FileSizeLabel — @file.UploadedAt.ToString("dd/MM HH:mm")</small>
+                                    </div>
+                                    <span class="file-status-badge @file.StatusCssClass">@file.StatusLabel</span>
+                                </div>
+
+                                @if (CanEditFiles && (file.Status == FileReviewStatus.Refused || file.Status == FileReviewStatus.NeedsModification || file.Status == FileReviewStatus.Pending))
+                                {
+                                    <div class="file-actions">
+                                        <label class="btn-file-action replace" title="Envoyer une nouvelle version de ce fichier" style="cursor: pointer;">
+                                            <i class="fa-solid fa-arrows-rotate"></i> Remplacer
+                                            <InputFile OnChange="(e) => HandleReplaceFile(e, file.Id)" accept=".stl,.3mf,.dxf,.obj" style="display: none;" />
+                                        </label>
+                                        <button class="btn-file-action delete" title="Retirer ce fichier de la demande" @onclick="() => DeleteFile(file.Id)">
+                                            <i class="fa-solid fa-trash"></i> Supprimer
+                                        </button>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(file.ManagerComment))
+                                {
+                                    <div class="file-comment">
+                                        <i class="fa-solid fa-comment"></i> @file.ManagerComment
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Discussion -->
+            <div class="card-clean mt-section comments-section">
+                <h5><i class="fa-solid fa-comments"></i> Discussion</h5>
+
+                @if (Request.Comments.Any())
+                {
+                    <div class="comments-list">
+                        @foreach (var comment in Request.Comments.OrderBy(c => c.CreatedAt))
+                        {
+                            <div class="comment-item">
+                                <div class="comment-avatar" style="background: @(comment.AuthorMemberId == Request.RequestedByMemberId ? "var(--primary-blue)" : "var(--accent-magenta)")">
+                                    @(comment.Author?.Initials ?? "??")
+                                </div>
+                                <div class="comment-body">
+                                    <div class="comment-meta">
+                                        <strong>@(comment.Author?.FullName ?? "Inconnu")</strong>
+                                        <span class="comment-date">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                    <p class="comment-text">@comment.Message</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted-center">Aucun message pour l'instant.</p>
+                }
+
+                <div class="comment-form">
+                    <textarea class="form-input" @bind="NewCommentText" rows="2" placeholder="Écrire un message..."></textarea>
+                    <button class="btn-primary btn-send" @onclick="SendComment" disabled="@string.IsNullOrWhiteSpace(NewCommentText)">
+                        <i class="fa-solid fa-paper-plane"></i> Envoyer
+                    </button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Request? Request;
+    private string NewCommentText = "";
+    private const long MaxFileSize = 1024 * 1024 * 50;
+
+    private bool CanEditFiles => Request?.Status == RequestStatus.Submitted ||
+        Request?.Status == RequestStatus.Rejected ||
+        Request?.Files.Any(f => f.Status == FileReviewStatus.Refused || f.Status == FileReviewStatus.NeedsModification) == true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var member = AuthState.CurrentMember;
+        var request = await RequestService.GetRequestByIdAsync(Id);
+
+        #if DEBUG
+        if (request == null) request = LoadMockRequest();
+        #endif
+
+        // Vérifier que l'utilisateur est le propriétaire
+        if (request != null && member != null && request.RequestedByMemberId == member.Id)
+        {
+            Request = request;
+        }
+    }
+
+    #if DEBUG
+    private Request LoadMockRequest()
+    {
+        var mockUser = new Member { Id = 16, FirstName = "Nathan", LastName = "Simon", Email = "nathan.simon@edu.devinci.fr", MemberRoles = [new MemberRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
+        var mockManager = new Member { Id = 12, FirstName = "Hugo", LastName = "Petit", Email = "hugo.petit@edu.devinci.fr", MemberRoles = [new MemberRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }] };
+
+        return new Request
+        {
+            Id = Id,
+            Type = RequestType.FDM,
+            Title = "Support de téléphone personnalisé",
+            Description = "Impression d'un support ajustable en PLA noir, avec angle réglable et passage pour câble de charge. Dimensions environ 8x6x10 cm.",
+            Status = RequestStatus.Submitted,
+            MaterialPreference = "PLA Noir",
+            RequestedByMemberId = 16,
+            RequestedBy = mockUser,
+            CreatedAt = DateTime.UtcNow.AddDays(-2),
+            Files = new List<RequestFile>
+            {
+                new() { Id = 1, RequestId = Id, OriginalFileName = "support_base.stl", FilePath = "#", FileSize = 245000, UploadedAt = DateTime.UtcNow.AddDays(-2), Status = FileReviewStatus.Accepted },
+                new() { Id = 2, RequestId = Id, OriginalFileName = "support_bras.stl", FilePath = "#", FileSize = 180000, UploadedAt = DateTime.UtcNow.AddDays(-2), Status = FileReviewStatus.Refused, ManagerComment = "Épaisseur trop fine, risque de casse. Passer à 2mm min." },
+                new() { Id = 3, RequestId = Id, OriginalFileName = "clip_cable.3mf", FilePath = "#", FileSize = 52000, UploadedAt = DateTime.UtcNow.AddDays(-1), Status = FileReviewStatus.Pending },
+            },
+            Comments = new List<RequestComment>
+            {
+                new() { Id = 1, RequestId = Id, AuthorMemberId = 12, Author = mockManager, Message = "Le fichier support_bras.stl a une épaisseur trop fine au niveau de la charnière. Il faut passer à 2mm minimum sinon ça cassera à l'impression. Merci de corriger et re-soumettre.", CreatedAt = DateTime.UtcNow.AddDays(-1).AddHours(-3) },
+                new() { Id = 2, RequestId = Id, AuthorMemberId = 16, Author = mockUser, Message = "D'accord, je corrige ça ce soir et je renvoie le fichier. Merci pour le retour !", CreatedAt = DateTime.UtcNow.AddDays(-1).AddHours(-1) },
+            }
+        };
+    }
+    #endif
+
+    private void GoBack() => NavManager.NavigateTo("/public/my-requests");
+
+    private async Task SendComment()
+    {
+        if (Request == null || string.IsNullOrWhiteSpace(NewCommentText)) return;
+        var member = AuthState.CurrentMember;
+        if (member == null) return;
+
+        await RequestService.AddCommentAsync(Request.Id, member.Id, NewCommentText.Trim());
+        NewCommentText = "";
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task HandleAddFile(InputFileChangeEventArgs e)
+    {
+        if (Request == null) return;
+        var file = e.File;
+        if (file.Size > MaxFileSize) return;
+
+        using var stream = file.OpenReadStream(MaxFileSize);
+        await RequestService.AddFileAsync(Request.Id, stream, file.Name, file.Size);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task HandleReplaceFile(InputFileChangeEventArgs e, int fileId)
+    {
+        var file = e.File;
+        if (file.Size > MaxFileSize) return;
+
+        using var stream = file.OpenReadStream(MaxFileSize);
+        await RequestService.ReplaceFileAsync(fileId, stream, file.Name, file.Size);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task DeleteFile(int fileId)
+    {
+        await RequestService.DeleteFileAsync(fileId);
+        Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+}

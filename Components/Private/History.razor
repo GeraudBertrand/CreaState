@@ -1,6 +1,6 @@
 @page "/private/history"
 @layout PrivateLayout
-@attribute [Authorize]
+@attribute [Authorize(Policy = "PrivateAccess")]
 
 @inject PageHeaderService HeaderService
 @inject PrintJobService PrintJobService
@@ -135,5 +135,40 @@
             status = parsed;
 
         PrintJobs = await PrintJobService.GetRecentJobsAsync(30, printerId, status);
+
+        #if DEBUG
+        if (PrintJobs.Count == 0 && printerId == null && status == null) LoadMockPrintJobs();
+        #endif
     }
+
+    #if DEBUG
+    private void LoadMockPrintJobs()
+    {
+        var printerNames = new Dictionary<string, string>
+        {
+            { "printer-ratome", "Ratome" }, { "printer-bonnie", "Bonnie" },
+            { "printer-hubble", "Hubble" }, { "printer-r2d2", "R2-D2" }
+        };
+        var files = new[] { "support_phone.3mf", "engrenage_v2.stl", "boitier_arduino.3mf", "figurine_chat.stl", "clip_cable.stl",
+                            "pied_laptop.3mf", "cache_prise.stl", "bras_robot.3mf", "pot_plante.stl", "coque_raspberry.3mf" };
+        var rng = new Random(42);
+
+        PrintJobs = Enumerable.Range(1, 10).Select(i =>
+        {
+            var pid = printerNames.Keys.ElementAt(rng.Next(printerNames.Count));
+            var st = i <= 7 ? PrintStatus.Success : i == 8 ? PrintStatus.Failed : PrintStatus.Cancelled;
+            return new PrintJob
+            {
+                Id = i,
+                FileName = files[i - 1],
+                PrinterId = pid,
+                Printer = new Printer { Id = pid, Name = printerNames[pid], Model = "Bambu Lab A1 Mini" },
+                StartTime = DateTime.UtcNow.AddDays(-rng.Next(1, 28)).AddHours(-rng.Next(1, 12)),
+                Duration = TimeSpan.FromMinutes(rng.Next(30, 480)),
+                Status = st,
+                FilamentWeightGrams = rng.Next(8, 120)
+            };
+        }).OrderByDescending(j => j.StartTime).ToList();
+    }
+    #endif
 }

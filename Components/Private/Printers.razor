@@ -1,6 +1,6 @@
 ﻿@page "/private/printers"
 @layout PrivateLayout
-@attribute [Authorize]
+@attribute [Authorize(Policy = "ViewPrinters")]
 
 @inject PageHeaderService HeaderService
 @inject PrinterService PrinterService

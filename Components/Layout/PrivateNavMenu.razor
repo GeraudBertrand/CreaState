@@ -27,16 +27,23 @@
             <i class="fa-solid fa-chart-pie"></i> Dashboard
         </NavLink>
     </li>
-    <li>
-        <NavLink class="nav-item" href="private/printers">
-            <i class="fa-solid fa-print"></i> Imprimantes
-        </NavLink>
-    </li>
-    <li>
-        <NavLink class="nav-item" href="private/requests">
-            <i class="fa-solid fa-ticket"></i> Demandes
-        </NavLink>
-    </li>
+
+    <AuthorizeView Policy="ViewPrinters">
+        <li>
+            <NavLink class="nav-item" href="private/printers">
+                <i class="fa-solid fa-print"></i> Imprimantes
+            </NavLink>
+        </li>
+    </AuthorizeView>
+
+    <AuthorizeView Policy="ManageRequests">
+        <li>
+            <NavLink class="nav-item" href="private/requests">
+                <i class="fa-solid fa-ticket"></i> Demandes
+            </NavLink>
+        </li>
+    </AuthorizeView>
+
     <li>
         <NavLink class="nav-item" href="private/history">
             <i class="fa-solid fa-clock-rotate-left"></i> Historique
@@ -47,11 +54,15 @@
             <i class="fa-solid fa-users"></i> Membres
         </NavLink>
     </li>
-    <li>
-        <NavLink class="nav-item" href="private/inventory">
-            <i class="fa-solid fa-boxes-stacked"></i> Inventaire
-        </NavLink>
-    </li>
+
+    <AuthorizeView Policy="ManageInventory">
+        <li>
+            <NavLink class="nav-item" href="private/inventory">
+                <i class="fa-solid fa-boxes-stacked"></i> Inventaire
+            </NavLink>
+        </li>
+    </AuthorizeView>
+
     <li>
         <NavLink class="nav-item" href="private/maintenance">
             <i class="fa-solid fa-wrench"></i> Maintenance

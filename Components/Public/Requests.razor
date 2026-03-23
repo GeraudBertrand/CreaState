@@ -1,4 +1,5 @@
 ﻿@page "/public/request"
+@attribute [Authorize]
 
 @inject RequestService RequestService
 @inject AuthStateProvider AuthState
@@ -39,7 +40,12 @@
                             <i class="fa-solid fa-ticket fa-4x" style="color: var(--primary-blue); margin-bottom: 1rem;"></i>
                             <h3>Ticket #CR-@RandomTicketNumber généré avec succès !</h3>
                             <p>Votre demande a été envoyée au bureau. Vous recevrez un email dès que votre pièce sera prête ou si nous avons besoin de modifier les paramètres d'impression.</p>
-                            <button class="btn-primary mt-4" @onclick="ResetForm">Nouvelle demande</button>
+                            <div class="d-flex gap-2 justify-content-center mt-4">
+                                <a href="/public/my-requests/@RandomTicketNumber" class="btn-primary">
+                                    <i class="fa-solid fa-eye"></i> Suivre ma demande
+                                </a>
+                                <button class="btn-secondary" @onclick="ResetForm">Nouvelle demande</button>
+                            </div>
                         </div>
                     }
                     else

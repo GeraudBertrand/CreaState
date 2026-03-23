@@ -43,6 +43,7 @@ namespace CreaState.Models
         // Navigation
         public ICollection<RequestFile> Files { get; set; } = [];
         public ICollection<PrintJob> PrintJobs { get; set; } = [];
+        public ICollection<RequestComment> Comments { get; set; } = [];
 
         [NotMapped]
         public string StatusLabel => Status.GetDisplayName();

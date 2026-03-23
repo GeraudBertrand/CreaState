@@ -4,6 +4,7 @@ using CreaState.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CreaState.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260321105318_AddRequestComments")]
+    partial class AddRequestComments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -249,21 +252,6 @@ namespace CreaState.Migrations
                     b.ToTable("MaintenanceRecords");
                 });
 
-            modelBuilder.Entity("CreaState.Models.MemberRole", b =>
-                {
-                    b.Property<int>("MemberId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("MemberId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("MemberRoles");
-                });
-
             modelBuilder.Entity("CreaState.Models.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -450,37 +438,6 @@ namespace CreaState.Migrations
                     b.ToTable("Requests");
                 });
 
-            modelBuilder.Entity("CreaState.Models.RequestComment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AuthorMemberId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)");
-
-                    b.Property<int>("RequestId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AuthorMemberId");
-
-                    b.HasIndex("RequestId");
-
-                    b.ToTable("RequestComments");
-                });
-
             modelBuilder.Entity("CreaState.Models.RequestFile", b =>
                 {
                     b.Property<int>("Id")
@@ -632,6 +589,11 @@ namespace CreaState.Migrations
                     b.Property<DateTime>("JoinDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.HasIndex("RoleId");
+
                     b.HasDiscriminator().HasValue("Member");
                 });
 
@@ -694,25 +656,6 @@ namespace CreaState.Migrations
                     b.Navigation("ResolvedBy");
                 });
 
-            modelBuilder.Entity("CreaState.Models.MemberRole", b =>
-                {
-                    b.HasOne("CreaState.Models.Member", "Member")
-                        .WithMany("MemberRoles")
-                        .HasForeignKey("MemberId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CreaState.Models.Role", "Role")
-                        .WithMany("MemberRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Member");
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("CreaState.Models.PrintJob", b =>
                 {
                     b.HasOne("CreaState.Models.Printer", "Printer")
@@ -763,25 +706,6 @@ namespace CreaState.Migrations
                     b.Navigation("RequestedBy");
                 });
 
-            modelBuilder.Entity("CreaState.Models.RequestComment", b =>
-                {
-                    b.HasOne("CreaState.Models.Member", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorMemberId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CreaState.Models.Request", "Request")
-                        .WithMany("Comments")
-                        .HasForeignKey("RequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-
-                    b.Navigation("Request");
-                });
-
             modelBuilder.Entity("CreaState.Models.RequestFile", b =>
                 {
                     b.HasOne("CreaState.Models.Request", "Request")
@@ -812,6 +736,17 @@ namespace CreaState.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("CreaState.Models.Member", b =>
+                {
+                    b.HasOne("CreaState.Models.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("CreaState.Models.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
@@ -826,8 +761,6 @@ namespace CreaState.Migrations
 
             modelBuilder.Entity("CreaState.Models.Request", b =>
                 {
-                    b.Navigation("Comments");
-
                     b.Navigation("Files");
 
                     b.Navigation("PrintJobs");
@@ -835,14 +768,7 @@ namespace CreaState.Migrations
 
             modelBuilder.Entity("CreaState.Models.Role", b =>
                 {
-                    b.Navigation("MemberRoles");
-
                     b.Navigation("RolePermissions");
-                });
-
-            modelBuilder.Entity("CreaState.Models.Member", b =>
-                {
-                    b.Navigation("MemberRoles");
                 });
 #pragma warning restore 612, 618
         }

@@ -5,7 +5,11 @@
       "Bash(dotnet build:*)",
       "Bash(dotnet tool:*)",
       "Bash(dotnet ef:*)",
-      "Bash(find D:ProjectCreaStatewwwrootcss -type f -name *.css)"
+      "Bash(find D:ProjectCreaStatewwwrootcss -type f -name *.css)",
+      "Bash(xargs grep:*)",
+      "Bash(ls -la ./Components/Private/*.razor)",
+      "Bash(find D:/Project/CreaState/wwwroot -name *stl* -o -name *3d* -o -name *viewer* -o -name *three*)",
+      "Bash(grep -E \"\\\\.cs$\")"
     ]
   }
 }

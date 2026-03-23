@@ -98,7 +98,14 @@
             if (member != null)
             {
                 AuthState.Login(member);
-                NavManager.NavigateTo("/private");
+                if(member.IsBoardMember)
+                {
+                    NavManager.NavigateTo("/private");
+                }
+                else
+                {
+                    NavManager.NavigateTo("/public");
+                }
             }
             else
             {

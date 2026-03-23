@@ -22,5 +22,7 @@ namespace CreaState.Models
         public bool IsDefault { get; set; } = false;
 
         public ICollection<RolePermission> RolePermissions { get; set; } = [];
+
+        public ICollection<MemberRole> MemberRoles { get; set; } = [];
     }
 }

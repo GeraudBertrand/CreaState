@@ -23,8 +23,11 @@ builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredServ
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy("PrivateAccess", p => p.RequireClaim("Permission", "access_private"));
+    options.AddPolicy("ManageRequests", p => p.RequireClaim("Permission", "manage_requests"));
+    options.AddPolicy("ManageInventory", p => p.RequireClaim("Permission", "manage_inventory"));
+    options.AddPolicy("ViewPrinters", p => p.RequireClaim("Permission", "view_printers"));
     options.AddPolicy("AdminOnly", p => p.RequireClaim("Permission", "admin_access"));
-    options.AddPolicy("MemberOrAbove", p => p.RequireAuthenticatedUser());
 });
 #endregion
 

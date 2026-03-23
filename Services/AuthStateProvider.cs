@@ -27,17 +27,19 @@ namespace CreaState.Services
                 new(ClaimTypes.NameIdentifier, _currentMember.Id.ToString()),
                 new(ClaimTypes.Name, _currentMember.FullName),
                 new(ClaimTypes.Email, _currentMember.Email),
-                new(ClaimTypes.Role, _currentMember.Role?.Name ?? "Eleve")
             };
 
-            // Ajouter les permissions comme claims
-            if (_currentMember.Role?.RolePermissions != null)
-            {
-                foreach (var rp in _currentMember.Role.RolePermissions)
-                {
-                    claims.Add(new Claim("Permission", rp.Permission.Code));
-                }
-            }
+            // Ajouter un claim Role par rôle
+            foreach (var mr in _currentMember.MemberRoles)
+                claims.Add(new(ClaimTypes.Role, mr.Role?.Name ?? ""));
+
+            // Ajouter les permissions (union de tous les rôles) comme claims
+            var allPermissions = _currentMember.MemberRoles
+                .SelectMany(mr => mr.Role?.RolePermissions ?? [])
+                .Select(rp => rp.Permission.Code)
+                .Distinct();
+            foreach (var perm in allPermissions)
+                claims.Add(new Claim("Permission", perm));
 
             var identity = new ClaimsIdentity(claims, "CreaState.Auth");
             var principal = new ClaimsPrincipal(identity);
@@ -62,7 +64,8 @@ namespace CreaState.Services
         /// </summary>
         public bool HasPermission(string permissionCode)
         {
-            return _currentMember?.Role?.RolePermissions?
+            return _currentMember?.MemberRoles?
+                .SelectMany(mr => mr.Role?.RolePermissions ?? [])
                 .Any(rp => rp.Permission.Code == permissionCode) ?? false;
         }
     }

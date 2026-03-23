@@ -1,6 +1,6 @@
 @page "/private/maintenance"
 @layout PrivateLayout
-@attribute [Authorize]
+@attribute [Authorize(Policy = "PrivateAccess")]
 
 @inject PageHeaderService HeaderService
 @inject MaintenanceService MaintenanceService
@@ -253,12 +253,43 @@
     {
         AllRecords = await MaintenanceService.GetAllRecordsAsync();
         UpcomingMaintenance = await MaintenanceService.GetUpcomingMaintenanceAsync();
+
+        #if DEBUG
+        if (AllRecords.Count == 0) LoadMockRecords();
+        #endif
+
         UnresolvedCount = AllRecords.Count(r => r.IsBreakdownReport && !r.IsResolved);
 
         RecordsByPrinter = AllRecords
             .GroupBy(r => r.PrinterId)
             .ToDictionary(g => g.Key, g => g.ToList());
     }
+
+    #if DEBUG
+    private void LoadMockRecords()
+    {
+        var mockMember = new Member { Id = 10, FirstName = "Hugo", LastName = "Petit", MemberRoles = [new MemberRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }] };
+
+        AllRecords = new List<MaintenanceRecord>
+        {
+            new() { Id = 1, PrinterId = "printer-ratome", Printer = new Printer { Id = "printer-ratome", Name = "Ratome", Model = "Bambu Lab A1 Mini" },
+                    Type = MaintenanceType.Calibration, Description = "Calibration XY complète après déplacement de la machine.", PerformedAt = DateTime.UtcNow.AddDays(-5), PerformedByMemberId = 10, PerformedBy = mockMember },
+            new() { Id = 2, PrinterId = "printer-bonnie", Printer = new Printer { Id = "printer-bonnie", Name = "Bonnie", Model = "Bambu Lab A1 Mini" },
+                    Type = MaintenanceType.Other, Description = "Buse bouchée, extrusion irrégulière.", PerformedAt = DateTime.UtcNow.AddDays(-3), PerformedByMemberId = 10, PerformedBy = mockMember,
+                    IsBreakdownReport = true, IsResolved = false },
+            new() { Id = 3, PrinterId = "printer-hubble", Printer = new Printer { Id = "printer-hubble", Name = "Hubble", Model = "Bambu Lab A1 Mini" },
+                    Type = MaintenanceType.Repair, Description = "Courroie axe Y détendue, remplacée.", PerformedAt = DateTime.UtcNow.AddDays(-10), PerformedByMemberId = 10, PerformedBy = mockMember,
+                    IsBreakdownReport = true, IsResolved = true, ResolvedAt = DateTime.UtcNow.AddDays(-9), ResolvedByMemberId = 10, ResolvedBy = mockMember },
+            new() { Id = 4, PrinterId = "printer-r2d2", Printer = new Printer { Id = "printer-r2d2", Name = "R2-D2", Model = "Bambu Lab A1 Mini" },
+                    Type = MaintenanceType.Cleaning, Description = "Nettoyage plateau et ventilateurs.", PerformedAt = DateTime.UtcNow.AddDays(-2), PerformedByMemberId = 10, PerformedBy = mockMember },
+            new() { Id = 5, PrinterId = "printer-ratome", Printer = new Printer { Id = "printer-ratome", Name = "Ratome", Model = "Bambu Lab A1 Mini" },
+                    Type = MaintenanceType.Scheduled, Description = "Maintenance préventive mensuelle prévue.", PerformedAt = DateTime.UtcNow.AddDays(-1), PerformedByMemberId = 10, PerformedBy = mockMember,
+                    NextScheduledAt = DateTime.UtcNow.AddDays(25) },
+        };
+
+        UpcomingMaintenance = AllRecords.Where(r => r.NextScheduledAt.HasValue && r.NextScheduledAt > DateTime.UtcNow).ToList();
+    }
+    #endif
 
     private void StartBreakdownReport(string printerId, string printerName)
     {

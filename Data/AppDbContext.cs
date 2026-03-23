@@ -21,6 +21,8 @@ namespace CreaState.Data
         public DbSet<RequestFile> RequestFiles => Set<RequestFile>();
         public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
         public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
+        public DbSet<RequestComment> RequestComments => Set<RequestComment>();
+        public DbSet<MemberRole> MemberRoles => Set<MemberRole>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -61,11 +63,20 @@ namespace CreaState.Data
                 .HasForeignKey(rp => rp.PermissionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Member -> Role
-            modelBuilder.Entity<Member>()
-                .HasOne(m => m.Role)
-                .WithMany()
-                .HasForeignKey(m => m.RoleId)
+            // Member <-> Role (many-to-many via MemberRole)
+            modelBuilder.Entity<MemberRole>()
+                .HasKey(mr => new { mr.MemberId, mr.RoleId });
+
+            modelBuilder.Entity<MemberRole>()
+                .HasOne(mr => mr.Member)
+                .WithMany(m => m.MemberRoles)
+                .HasForeignKey(mr => mr.MemberId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MemberRole>()
+                .HasOne(mr => mr.Role)
+                .WithMany(r => r.MemberRoles)
+                .HasForeignKey(mr => mr.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Printer : clé string
@@ -123,6 +134,19 @@ namespace CreaState.Data
                 .WithMany(r => r.Files)
                 .HasForeignKey(rf => rf.RequestId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // RequestComment relations
+            modelBuilder.Entity<RequestComment>()
+                .HasOne(rc => rc.Request)
+                .WithMany(r => r.Comments)
+                .HasForeignKey(rc => rc.RequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RequestComment>()
+                .HasOne(rc => rc.Author)
+                .WithMany()
+                .HasForeignKey(rc => rc.AuthorMemberId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // MaintenanceRecord relations
             modelBuilder.Entity<MaintenanceRecord>()
