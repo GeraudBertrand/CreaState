@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CreaState.Models
 {
@@ -19,20 +18,12 @@ namespace CreaState.Models
 
         public string? PasswordHash { get; set; }
 
+        public ClassYearEnum ClassYear { get; set; } = ClassYearEnum.Other;
+
+        public UserType UserType { get; set; } = UserType.Eleve;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         public DateTime? LastLoginAt { get; set; }
-
-        [NotMapped]
-        public string FullName => $"{FirstName} {LastName}";
-
-        [NotMapped]
-        public string Initials
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(FirstName) || string.IsNullOrEmpty(LastName)) return "??";
-                return $"{FirstName[0]}{LastName[0]}".ToUpper();
-            }
-        }
     }
 }

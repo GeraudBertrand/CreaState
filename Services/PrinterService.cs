@@ -1,83 +1,94 @@
-﻿using CreaState.Models;
+using CreaState.Models;
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 
 namespace CreaState.Services
 {
+    public class PrinterRuntimeState
+    {
+        public int PrinterId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string IpAddress { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public string SerialNumber { get; set; } = string.Empty;
+        public PrinterStatus Status { get; set; } = PrinterStatus.Offline;
+        public string CurrentFile { get; set; } = string.Empty;
+        public int Progress { get; set; }
+        public int TimeRemainingMinutes { get; set; }
+        public int NozzleTemp { get; set; }
+        public int BedTemp { get; set; }
+        public string FilamentType { get; set; } = "PLA";
+        public string FilamentColor { get; set; } = "#ffffff";
+    }
+
     public class PrinterService
     {
-        // ConcurrentDictionary est vital ici : plusieurs threads (MQTT + UI) vont lire/écrire en même temps.
-        // La clé est l'adresse IP (unique par machine).
-        private readonly ConcurrentDictionary<string, Printer> _printers = new();
+        private readonly ConcurrentDictionary<string, PrinterRuntimeState> _printers = new();
 
-        // L'événement que Blazor écoutera pour rafraîchir la page
         public event Action? OnChange;
 
-        /// <summary>
-        /// Charge les imprimantes depuis la base de données.
-        /// Appelé au démarrage par PrinterMqttWorker.
-        /// </summary>
         public void LoadPrintersFromDb(List<Printer> dbPrinters)
         {
             _printers.Clear();
-            foreach (var printer in dbPrinters)
+            foreach (var p in dbPrinters)
             {
-                _printers.TryAdd(printer.IpAddress, printer);
+                _printers.TryAdd(p.IpAddress, new PrinterRuntimeState
+                {
+                    PrinterId = p.Id,
+                    Name = p.Name,
+                    IpAddress = p.IpAddress,
+                    Model = p.Model,
+                    SerialNumber = p.SerialNumber
+                });
             }
         }
 
-        // Récupérer la liste pour l'affichage
-        public List<Printer> GetPrinters() => [.. _printers.Values.OrderBy(p => p.Name)];
+        public List<Printer> GetPrinters()
+        {
+            // Return Printer models for MQTT worker compatibility
+            return _printers.Values.Select(s => new Printer
+            {
+                Id = s.PrinterId,
+                Name = s.Name,
+                IpAddress = s.IpAddress,
+                Model = s.Model,
+                SerialNumber = s.SerialNumber,
+                AccessCode = string.Empty // Not stored in runtime state
+            }).OrderBy(p => p.Name).ToList();
+        }
 
-        // C'est ICI que la magie opère. Le Listener MQTT appelle cette méthode.
+        public List<PrinterRuntimeState> GetPrinterStates()
+            => [.. _printers.Values.OrderBy(p => p.Name)];
+
         public void UpdateFromMqtt(string ipAddress, string jsonPayload)
         {
-            if (!_printers.TryGetValue(ipAddress, out var printer)) return;
+            if (!_printers.TryGetValue(ipAddress, out var state)) return;
 
             try
             {
-                // Parsing dynamique du JSON Bambu Lab
                 var node = JsonNode.Parse(jsonPayload);
-                var printData = node?["print"]; // Bambu met tout dans un objet "print"
+                var printData = node?["print"];
 
                 if (printData != null)
                 {
-                    // 1. Mise à jour du pourcentage
                     if (printData["mc_percent"] != null)
-                    {
-                        printer.Progress = ParseBambuNumber(printData["mc_percent"]);
-                    }
+                        state.Progress = ParseBambuNumber(printData["mc_percent"]);
 
-                    // 2. Mise à jour des températures
                     if (printData["nozzle_temper"] != null)
-                    {
-                        printer.NozzleTemp = ParseBambuNumber(printData["nozzle_temper"]);
-                    }
+                        state.NozzleTemp = ParseBambuNumber(printData["nozzle_temper"]);
+
                     if (printData["bed_temper"] != null)
-                    {
-                        printer.BedTemp = ParseBambuNumber(printData["bed_temper"]);
-                    }
+                        state.BedTemp = ParseBambuNumber(printData["bed_temper"]);
 
-                    // 3. Mise à jour du statut (Running, Idle, etc.)
                     if (printData["gcode_state"] != null)
-                    {
-                        string state = printData["gcode_state"]!.ToString();
-                        printer.Status = MapBambuStateToEnum(state);
-                    }
+                        state.Status = MapBambuStateToEnum(printData["gcode_state"]!.ToString());
 
-                    // 4. Temps restant (Bambu envoie des minutes restantes)
                     if (printData["mc_remaining_time"] != null)
-                    {
-                        printer.TimeRemainingMinutes = ParseBambuNumber(printData["mc_remaining_time"]);
-                    }
+                        state.TimeRemainingMinutes = ParseBambuNumber(printData["mc_remaining_time"]);
 
-                    // 5. Nom du fichier (souvent dans 'subtask_name')
                     if (printData["subtask_name"] != null)
-                    {
-                        printer.CurrentFile = printData["subtask_name"].ToString().Replace(".gcode", "");
-                    }
+                        state.CurrentFile = printData["subtask_name"].ToString().Replace(".gcode", "");
 
-                    // Notifier l'interface graphique qu'il y a du changement
                     NotifyStateChanged();
                 }
             }
@@ -90,30 +101,21 @@ namespace CreaState.Services
         private int ParseBambuNumber(JsonNode? node)
         {
             if (node == null) return 0;
-
-            // En forçant d'abord en string, puis en parsant en "double" avec l'Invariant Culture (pour le point décimal),
-            // on s'assure de ne jamais crasher, que Bambu envoie "75", 75, ou 215.5.
-            if (double.TryParse(node.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result))
-            {
+            if (double.TryParse(node.ToString(), System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out double result))
                 return (int)Math.Round(result);
-            }
-
-            return 0; // Fallback par défaut si ce n'est vraiment pas un nombre
+            return 0;
         }
 
-        // Helper pour traduire le langage "Bambu" en langage "Crealab"
-        private PrinterStatus MapBambuStateToEnum(string bambuState)
+        private PrinterStatus MapBambuStateToEnum(string bambuState) => bambuState switch
         {
-            return bambuState switch
-            {
-                "RUNNING" => PrinterStatus.Printing,
-                "IDLE" => PrinterStatus.Idle,
-                "PAUSE" => PrinterStatus.Pause,
-                "FINISH" => PrinterStatus.Success,
-                "FAILED" => PrinterStatus.Error,
-                _ => PrinterStatus.Idle
-            };
-        }
+            "RUNNING" => PrinterStatus.Printing,
+            "IDLE" => PrinterStatus.Idle,
+            "PAUSE" => PrinterStatus.Pause,
+            "FINISH" => PrinterStatus.Success,
+            "FAILED" => PrinterStatus.Error,
+            _ => PrinterStatus.Idle
+        };
 
         private void NotifyStateChanged() => OnChange?.Invoke();
     }

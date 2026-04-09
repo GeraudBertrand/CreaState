@@ -4,42 +4,43 @@ using System.Security.Claims;
 
 namespace CreaState.Services
 {
-    /// <summary>
-    /// AuthenticationStateProvider custom pour Blazor Server.
-    /// Stocke le membre connecté dans un champ scoped (durée du circuit Blazor).
-    /// </summary>
     public class AuthStateProvider : AuthenticationStateProvider
     {
-        private Member? _currentMember;
+        private Membre? _currentMembre;
+        private User? _currentUser;
 
         private static readonly AuthenticationState Anonymous =
             new(new ClaimsPrincipal(new ClaimsIdentity()));
 
-        public Member? CurrentMember => _currentMember;
+        public Membre? CurrentMembre => _currentMembre;
+        public User? CurrentUser => _currentUser ?? _currentMembre;
 
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            if (_currentMember == null)
+            var user = _currentUser ?? (User?)_currentMembre;
+            if (user == null)
                 return Task.FromResult(Anonymous);
 
             var claims = new List<Claim>
             {
-                new(ClaimTypes.NameIdentifier, _currentMember.Id.ToString()),
-                new(ClaimTypes.Name, _currentMember.FullName),
-                new(ClaimTypes.Email, _currentMember.Email),
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+                new(ClaimTypes.Email, user.Email),
+                new("UserType", user.UserType.ToString()),
             };
 
-            // Ajouter un claim Role par rôle
-            foreach (var mr in _currentMember.MemberRoles)
-                claims.Add(new(ClaimTypes.Role, mr.Role?.Name ?? ""));
+            if (_currentMembre != null)
+            {
+                foreach (var mr in _currentMembre.MembreRoles)
+                    claims.Add(new(ClaimTypes.Role, mr.Role?.Name ?? ""));
 
-            // Ajouter les permissions (union de tous les rôles) comme claims
-            var allPermissions = _currentMember.MemberRoles
-                .SelectMany(mr => mr.Role?.RolePermissions ?? [])
-                .Select(rp => rp.Permission.Code)
-                .Distinct();
-            foreach (var perm in allPermissions)
-                claims.Add(new Claim("Permission", perm));
+                var allPermissions = _currentMembre.MembreRoles
+                    .SelectMany(mr => mr.Role?.RolePermissions ?? [])
+                    .Select(rp => rp.Permission.Code)
+                    .Distinct();
+                foreach (var perm in allPermissions)
+                    claims.Add(new Claim("Permission", perm));
+            }
 
             var identity = new ClaimsIdentity(claims, "CreaState.Auth");
             var principal = new ClaimsPrincipal(identity);
@@ -47,24 +48,30 @@ namespace CreaState.Services
             return Task.FromResult(new AuthenticationState(principal));
         }
 
-        public void Login(Member member)
+        public void LoginMembre(Membre membre)
         {
-            _currentMember = member;
+            _currentMembre = membre;
+            _currentUser = membre;
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+        }
+
+        public void LoginUser(User user)
+        {
+            _currentMembre = null;
+            _currentUser = user;
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
         }
 
         public void Logout()
         {
-            _currentMember = null;
+            _currentMembre = null;
+            _currentUser = null;
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
         }
 
-        /// <summary>
-        /// Vérifie si l'utilisateur connecté a une permission spécifique.
-        /// </summary>
         public bool HasPermission(string permissionCode)
         {
-            return _currentMember?.MemberRoles?
+            return _currentMembre?.MembreRoles?
                 .SelectMany(mr => mr.Role?.RolePermissions ?? [])
                 .Any(rp => rp.Permission.Code == permissionCode) ?? false;
         }

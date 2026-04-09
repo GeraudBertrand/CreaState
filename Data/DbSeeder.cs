@@ -7,7 +7,6 @@ namespace CreaState.Data
     {
         public static async Task SeedAsync(AppDbContext context)
         {
-            // Appliquer les migrations en attente
             await context.Database.MigrateAsync();
 
             // === Seed des rôles ===
@@ -54,7 +53,7 @@ namespace CreaState.Data
                 await context.SaveChangesAsync();
             }
 
-            // === Seed de la matrice rôle ↔ permission ===
+            // === Seed de la matrice rôle <-> permission ===
             if (!await context.RolePermissions.AnyAsync())
             {
                 var roles = await context.Roles.ToListAsync();
@@ -81,22 +80,11 @@ namespace CreaState.Data
                 var secretaryPlus = new[] { "Secretary", "Treasurer" };
                 var bureauRoles = new[] { "VicePresident", "President" };
 
-                // Permissions communes à TOUS (y compris Élève)
                 AddMatrix(allRoleNames, new[] { "view_dashboard", "submit_requests" });
-
-                // Permissions Membre+ (tous sauf Élève)
                 AddMatrix(membreAndAbove, new[] { "access_private", "view_members", "report_breakdown" });
-
-                // AgentFab : manage_requests
                 Add("AgentFab", "manage_requests");
-
-                // TechManager : view_printers, manage_printers, manage_maintenance
                 AddMatrix(techManagerRoles, new[] { "view_printers", "manage_printers", "manage_maintenance" });
-
-                // Secretary, Treasurer : view_printers, manage_printers, manage_maintenance, view_inventory, manage_inventory
                 AddMatrix(secretaryPlus, new[] { "view_printers", "manage_printers", "manage_maintenance", "view_inventory", "manage_inventory" });
-
-                // Bureau (VP + Président) : TOUT
                 AddMatrix(bureauRoles, new[] {
                     "view_printers", "manage_printers", "manage_maintenance",
                     "view_inventory", "manage_inventory",
@@ -111,64 +99,32 @@ namespace CreaState.Data
             if (!await context.Printers.AnyAsync())
             {
                 context.Printers.AddRange(
-                    new Printer
-                    {
-                        Id = "printer-ratome",
-                        Name = "Ratome",
-                        IpAddress = "10.3.212.16",
-                        Model = "A1 Mini",
-                        AccessCode = "26110863",
-                        SerialNumber = "0309DA3C3100431"
-                    },
-                    new Printer
-                    {
-                        Id = "printer-bonnie",
-                        Name = "Bonnie",
-                        IpAddress = "10.3.212.10",
-                        Model = "A1 Mini",
-                        AccessCode = "87654321",
-                        SerialNumber = "0309DA3C3100060"
-                    },
-                    new Printer
-                    {
-                        Id = "printer-hubble",
-                        Name = "Hubble",
-                        IpAddress = "10.3.212.19",
-                        Model = "A1 Mini",
-                        AccessCode = "84466330",
-                        SerialNumber = "0309DA422200342"
-                    },
-                    new Printer
-                    {
-                        Id = "printer-r2d2",
-                        Name = "R2-D2",
-                        IpAddress = "10.3.212.23",
-                        Model = "A1 Mini",
-                        AccessCode = "85255827",
-                        SerialNumber = "0309DA441501115"
-                    }
+                    new Printer { Name = "Ratome", IpAddress = "10.3.212.16", Model = "A1 Mini", AccessCode = "26110863", SerialNumber = "0309DA3C3100431" },
+                    new Printer { Name = "Bonnie", IpAddress = "10.3.212.10", Model = "A1 Mini", AccessCode = "87654321", SerialNumber = "0309DA3C3100060" },
+                    new Printer { Name = "Hubble", IpAddress = "10.3.212.19", Model = "A1 Mini", AccessCode = "84466330", SerialNumber = "0309DA422200342" },
+                    new Printer { Name = "R2-D2", IpAddress = "10.3.212.23", Model = "A1 Mini", AccessCode = "85255827", SerialNumber = "0309DA441501115" }
                 );
             }
 
             // === Seed d'un membre admin ===
-            if (!await context.Members.AnyAsync())
+            if (!await context.Membres.AnyAsync())
             {
                 var presidentRole = await context.Roles.FirstAsync(r => r.Name == "President");
-                var admin = new Member
+                var admin = new Membre
                 {
                     FirstName = "Admin",
                     LastName = "Créalab",
                     Email = "admin@edu.devinci.fr",
                     PasswordHash = null,
                     ClassYear = ClassYearEnum.A3,
+                    UserType = UserType.Membre,
                     IsActive = true,
                     JoinDate = DateTime.UtcNow
                 };
-                context.Members.Add(admin);
+                context.Membres.Add(admin);
                 await context.SaveChangesAsync();
 
-                // Assigner le rôle Président via MemberRole
-                context.MemberRoles.Add(new MemberRole { MemberId = admin.Id, RoleId = presidentRole.Id });
+                context.MembreRoles.Add(new MembreRole { MembreId = admin.Id, RoleId = presidentRole.Id });
             }
 
             await context.SaveChangesAsync();

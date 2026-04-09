@@ -16,13 +16,10 @@ namespace CreaState.Models
         [MaxLength(200)]
         public string? Description { get; set; }
 
-        /// <summary>
-        /// Si true, ce rôle est assigné par défaut aux nouveaux inscrits (Élève).
-        /// </summary>
         public bool IsDefault { get; set; } = false;
 
+        // Navigation
         public ICollection<RolePermission> RolePermissions { get; set; } = [];
-
-        public ICollection<MemberRole> MemberRoles { get; set; } = [];
+        public ICollection<MembreRole> MembreRoles { get; set; } = [];
     }
 }

@@ -1,20 +1,23 @@
-using CreaState.Data;
 using CreaState.Models;
+using CreaState.Repositories.Interfaces;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 namespace CreaState.Services
 {
     public class AuthService
     {
-        private readonly AppDbContext _db;
-        private readonly PasswordHasher<Member> _hasher = new();
+        private readonly IUserRepository _userRepo;
+        private readonly IMembreRepository _membreRepo;
+        private readonly IRoleRepository _roleRepo;
+        private readonly PasswordHasher<User> _hasher = new();
 
         private const string AllowedDomain = "@edu.devinci.fr";
 
-        public AuthService(AppDbContext db)
+        public AuthService(IUserRepository userRepo, IMembreRepository membreRepo, IRoleRepository roleRepo)
         {
-            _db = db;
+            _userRepo = userRepo;
+            _membreRepo = membreRepo;
+            _roleRepo = roleRepo;
         }
 
         public async Task<(bool Success, string? Error)> RegisterAsync(
@@ -25,63 +28,68 @@ namespace CreaState.Services
             if (!email.EndsWith(AllowedDomain))
                 return (false, $"L'email doit se terminer par {AllowedDomain}");
 
-            if (await _db.Users.AnyAsync(u => u.Email == email))
+            if (await _userRepo.GetByEmailAsync(email) != null)
                 return (false, "Un compte existe déjà avec cet email");
 
             if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
                 return (false, "Le mot de passe doit contenir au moins 6 caractères");
 
-            // Rôle par défaut (Élève)
-            var defaultRole = await _db.Roles.FirstOrDefaultAsync(r => r.IsDefault);
+            var defaultRole = await _roleRepo.GetDefaultRoleAsync();
             if (defaultRole == null)
                 return (false, "Erreur de configuration : aucun rôle par défaut défini");
 
-            var member = new Member
+            // Par défaut, on crée un User (Eleve). Pour un Membre, on utilise PromoteToMembre.
+            var user = new User
             {
                 FirstName = firstName.Trim(),
                 LastName = lastName.Trim(),
                 Email = email,
                 ClassYear = classYear,
-                IsActive = true,
-                JoinDate = DateTime.UtcNow,
+                UserType = UserType.Eleve,
                 CreatedAt = DateTime.UtcNow
             };
 
-            member.PasswordHash = _hasher.HashPassword(member, password);
+            user.PasswordHash = _hasher.HashPassword(user, password);
 
-            _db.Members.Add(member);
-            await _db.SaveChangesAsync();
-
-            // Assigner le rôle par défaut via MemberRole
-            _db.MemberRoles.Add(new MemberRole { MemberId = member.Id, RoleId = defaultRole.Id });
-            await _db.SaveChangesAsync();
+            await _userRepo.AddAsync(user);
 
             return (true, null);
         }
 
-        public async Task<Member?> LoginAsync(string email, string password)
+        public async Task<Membre?> LoginAsync(string email, string password)
         {
             email = email.Trim().ToLowerInvariant();
 
-            var member = await _db.Members
-                .Include(m => m.MemberRoles)
-                    .ThenInclude(mr => mr.Role)
-                    .ThenInclude(r => r!.RolePermissions)
-                    .ThenInclude(rp => rp.Permission)
-                .FirstOrDefaultAsync(m => m.Email == email && m.IsActive);
-
-            if (member == null || string.IsNullOrEmpty(member.PasswordHash))
+            var membre = await _membreRepo.GetByEmailWithRolesAsync(email);
+            if (membre == null || string.IsNullOrEmpty(membre.PasswordHash))
                 return null;
 
-            var result = _hasher.VerifyHashedPassword(member, member.PasswordHash, password);
+            var result = _hasher.VerifyHashedPassword(membre, membre.PasswordHash, password);
             if (result == PasswordVerificationResult.Failed)
                 return null;
 
-            // Mettre à jour la date de dernière connexion
-            member.LastLoginAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
+            membre.LastLoginAt = DateTime.UtcNow;
+            await _membreRepo.UpdateAsync(membre);
 
-            return member;
+            return membre;
+        }
+
+        public async Task<User?> LoginUserAsync(string email, string password)
+        {
+            email = email.Trim().ToLowerInvariant();
+
+            var user = await _userRepo.GetByEmailAsync(email);
+            if (user == null || string.IsNullOrEmpty(user.PasswordHash))
+                return null;
+
+            var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, password);
+            if (result == PasswordVerificationResult.Failed)
+                return null;
+
+            user.LastLoginAt = DateTime.UtcNow;
+            await _userRepo.UpdateAsync(user);
+
+            return user;
         }
     }
 }
