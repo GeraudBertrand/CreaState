@@ -151,8 +151,8 @@
     #if DEBUG
     private void LoadMockRequests()
     {
-        var mockUser = new Membre { Id = 16, FirstName = "Nathan", LastName = "Simon", MembreRoles = [new MembreRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
-        var mockUser2 = new Membre { Id = 17, FirstName = "Julie", LastName = "Michel", MembreRoles = [new MembreRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
+        var mockUser = new Membre { Id = 16, FirstName = "Nathan", LastName = "Simon", UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
+        var mockUser2 = new Membre { Id = 17, FirstName = "Julie", LastName = "Michel", UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
 
         RequestList = new List<Requete>
         {

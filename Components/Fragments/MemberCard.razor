@@ -27,7 +27,7 @@
     private string FullName => $"{member.FirstName} {member.LastName}";
     private string Initials => string.IsNullOrEmpty(member.FirstName) || string.IsNullOrEmpty(member.LastName)
         ? "??" : $"{member.FirstName[0]}{member.LastName[0]}".ToUpper();
-    private bool IsBoardMember => member.MembreRoles.Any(mr => mr.Role?.Name != "Eleve");
-    private string RoleLabel => string.Join(", ", member.MembreRoles.Select(mr => mr.Role?.DisplayName ?? ""));
+    private bool IsBoardMember => member.UserRoles.Any(ur => ur.Role?.Name != "Eleve");
+    private string RoleLabel => string.Join(", ", member.UserRoles.Select(ur => ur.Role?.DisplayName ?? ""));
     private string AvatarColor => IsBoardMember ? "var(--accent-magenta)" : "var(--primary-blue)";
 }

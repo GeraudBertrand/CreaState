@@ -60,14 +60,14 @@
     {
         AllMembers = new List<Membre>
         {
-            new() { Id = 10, FirstName = "Lucas", LastName = "Martin", Email = "lucas.martin@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 10, Role = new Role { Id = 10, DisplayName = "Président" } }], ClassYear = ClassYearEnum.A3, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-18) },
-            new() { Id = 11, FirstName = "Emma", LastName = "Bernard", Email = "emma.bernard@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 9, Role = new Role { Id = 9, DisplayName = "Vice-président" } }], ClassYear = ClassYearEnum.A3, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-16) },
-            new() { Id = 12, FirstName = "Hugo", LastName = "Petit", Email = "hugo.petit@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }], ClassYear = ClassYearEnum.A2, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-12) },
-            new() { Id = 13, FirstName = "Sarah", LastName = "Dubois", Email = "sarah.dubois@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 8, Role = new Role { Id = 8, DisplayName = "Trésorier" } }], ClassYear = ClassYearEnum.A3, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-14) },
-            new() { Id = 14, FirstName = "Thomas", LastName = "Moreau", Email = "thomas.moreau@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 7, Role = new Role { Id = 7, DisplayName = "Secrétaire" } }], ClassYear = ClassYearEnum.A2, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-10) },
-            new() { Id = 15, FirstName = "Camille", LastName = "Laurent", Email = "camille.laurent@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 4, Role = new Role { Id = 4, DisplayName = "Resp. Communication" } }], ClassYear = ClassYearEnum.A2, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-8) },
-            new() { Id = 16, FirstName = "Nathan", LastName = "Simon", Email = "nathan.simon@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }], ClassYear = ClassYearEnum.A1, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-3) },
-            new() { Id = 17, FirstName = "Julie", LastName = "Michel", Email = "julie.michel@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }], ClassYear = ClassYearEnum.A1, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-2) },
+            new() { Id = 10, FirstName = "Lucas", LastName = "Martin", Email = "lucas.martin@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 10, Role = new Role { Id = 10, DisplayName = "Président" } }], ClassYear = ClassYearEnum.A3, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-18) },
+            new() { Id = 11, FirstName = "Emma", LastName = "Bernard", Email = "emma.bernard@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 9, Role = new Role { Id = 9, DisplayName = "Vice-président" } }], ClassYear = ClassYearEnum.A3, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-16) },
+            new() { Id = 12, FirstName = "Hugo", LastName = "Petit", Email = "hugo.petit@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }], ClassYear = ClassYearEnum.A2, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-12) },
+            new() { Id = 13, FirstName = "Sarah", LastName = "Dubois", Email = "sarah.dubois@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 8, Role = new Role { Id = 8, DisplayName = "Trésorier" } }], ClassYear = ClassYearEnum.A3, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-14) },
+            new() { Id = 14, FirstName = "Thomas", LastName = "Moreau", Email = "thomas.moreau@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 7, Role = new Role { Id = 7, DisplayName = "Secrétaire" } }], ClassYear = ClassYearEnum.A2, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-10) },
+            new() { Id = 15, FirstName = "Camille", LastName = "Laurent", Email = "camille.laurent@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 4, Role = new Role { Id = 4, DisplayName = "Resp. Communication" } }], ClassYear = ClassYearEnum.A2, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-8) },
+            new() { Id = 16, FirstName = "Nathan", LastName = "Simon", Email = "nathan.simon@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }], ClassYear = ClassYearEnum.A1, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-3) },
+            new() { Id = 17, FirstName = "Julie", LastName = "Michel", Email = "julie.michel@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }], ClassYear = ClassYearEnum.A1, IsActive = true, JoinDate = DateTime.UtcNow.AddMonths(-2) },
         };
     }
     #endif
@@ -81,7 +81,7 @@
             if (!string.IsNullOrWhiteSpace(SearchTerm))
             {
                 var fullName = (Membre m) => $"{m.FirstName} {m.LastName}";
-                var roleLabel = (Membre m) => string.Join(", ", m.MembreRoles.Select(mr => mr.Role?.DisplayName ?? ""));
+                var roleLabel = (Membre m) => string.Join(", ", m.UserRoles.Select(mr => mr.Role?.DisplayName ?? ""));
                 query = query.Where(m =>
                     fullName(m).Contains(SearchTerm, StringComparison.OrdinalIgnoreCase) ||
                     roleLabel(m).Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
@@ -91,7 +91,7 @@
             switch (FilterType)
             {
                 case "Board":
-                    query = query.Where(m => m.MembreRoles.Any(mr => mr.Role?.Name != "Eleve"));
+                    query = query.Where(m => m.UserRoles.Any(mr => mr.Role?.Name != "Eleve"));
                     break;
             }
 

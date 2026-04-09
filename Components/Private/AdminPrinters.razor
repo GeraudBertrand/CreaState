@@ -1,0 +1,82 @@
+<div class="section-card">
+    <div class="card-header">
+        <h3><i class="fa-solid fa-network-wired"></i> Configuration Réseau Bambu Lab</h3>
+        <button class="btn btn-sm btn-primary" @onclick="AddNewPrinter">
+            <i class="fa-solid fa-plus"></i> Ajouter
+        </button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Modèle</th>
+                    <th>IP Locale</th>
+                    <th>Access Code</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Printers)
+                {
+                    <tr>
+                        <td><input class="form-input" @bind="p.Name" /></td>
+                        <td>
+                            <select class="form-select" @bind="p.Model">
+                                <option value="A1">A1</option>
+                                <option value="A1 Mini">A1 Mini</option>
+                                <option value="X1C">X1 Carbon</option>
+                                <option value="P1S">P1S</option>
+                            </select>
+                        </td>
+                        <td><input class="form-input code-font" @bind="p.IpAddress" placeholder="192.168.1.x" /></td>
+                        <td>
+                            <div class="password-input">
+                                <input type="text" class="form-input code-font" @bind="p.AccessCode" placeholder="Code écran" />
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn-icon danger" title="Supprimer" @onclick="() => RemovePrinter(p)">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                            <button class="btn-icon success" title="Tester Connexion">
+                                <i class="fa-solid fa-wifi"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer-info">
+        <i class="fa-solid fa-circle-info"></i>
+        N'oubliez pas de fixer les IP dans le routeur DHCP du Fablab pour éviter les déconnexions.
+    </div>
+</div>
+
+@code {
+    private List<Printer> Printers = new();
+
+    protected override void OnInitialized()
+    {
+        // TODO: charger depuis PrinterService / DB
+        Printers = new List<Printer>
+        {
+            new Printer { Id = 1, Name = "Bambu A1 - 01", Model = "A1", IpAddress = "192.168.1.50", AccessCode = "12345678" },
+            new Printer { Id = 2, Name = "Bambu A1 - 02", Model = "A1", IpAddress = "192.168.1.51", AccessCode = "87654321" },
+            new Printer { Id = 3, Name = "La X1 Carbon", Model = "X1C", IpAddress = "192.168.1.60", AccessCode = "ABCD1234" },
+            new Printer { Id = 4, Name = "Bambu A1 Mini", Model = "A1 Mini", IpAddress = "192.168.1.52", AccessCode = "MINI0001" },
+        };
+    }
+
+    private void AddNewPrinter()
+    {
+        Printers.Add(new Printer { Name = "Nouvelle Imprimante", IpAddress = "0.0.0.0" });
+    }
+
+    private void RemovePrinter(Printer p)
+    {
+        Printers.Remove(p);
+    }
+}

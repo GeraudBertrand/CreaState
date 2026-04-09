@@ -43,10 +43,10 @@ namespace CreaState.Mapping
                 : $"{membre.FirstName[0]}{membre.LastName[0]}".ToUpper(),
             JoinDate = membre.JoinDate,
             IsActive = membre.IsActive,
-            Roles = membre.MembreRoles.Select(mr => mr.Role!.ToDto()).ToList(),
-            RoleLabel = string.Join(", ", membre.MembreRoles.Select(mr => mr.Role?.DisplayName ?? "")),
-            IsBoardMember = membre.MembreRoles.Any(mr => mr.Role?.Name != "Eleve"),
-            AvatarColor = membre.MembreRoles.Any(mr => mr.Role?.Name != "Eleve")
+            Roles = membre.UserRoles.Select(ur => ur.Role!.ToDto()).ToList(),
+            RoleLabel = string.Join(", ", membre.UserRoles.Select(ur => ur.Role?.DisplayName ?? "")),
+            IsBoardMember = membre.UserRoles.Any(ur => ur.Role?.Name != "Eleve"),
+            AvatarColor = membre.UserRoles.Any(ur => ur.Role?.Name != "Eleve")
                 ? "var(--accent-magenta)"
                 : "var(--primary-blue)"
         };

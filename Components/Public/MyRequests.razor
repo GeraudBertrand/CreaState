@@ -93,7 +93,7 @@
     #if DEBUG
     private void LoadMockRequests()
     {
-        var mockUser = new Membre { Id = 16, FirstName = "Nathan", LastName = "Simon", Email = "nathan.simon@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
+        var mockUser = new Membre { Id = 16, FirstName = "Nathan", LastName = "Simon", Email = "nathan.simon@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
 
         Requests = new List<Requete>
         {

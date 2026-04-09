@@ -1,5 +1,6 @@
 @inject AuthStateProvider AuthState
 @inject NavigationManager NavManager
+@implements IDisposable
 
 <div class="logo-area">
     <i class="fa-solid fa-layer-group"></i>
@@ -11,7 +12,7 @@
     var m = AuthState.CurrentMembre;
     var initials = $"{m.FirstName[0]}{m.LastName[0]}".ToUpper();
     var fullName = $"{m.FirstName} {m.LastName}";
-    var roleLabel = string.Join(", ", m.MembreRoles.Select(mr => mr.Role?.DisplayName ?? ""));
+    var roleLabel = string.Join(", ", m.UserRoles.Select(ur => ur.Role?.DisplayName ?? ""));
 
     <div class="user-info" style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-light);">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -84,16 +85,23 @@
 </ul>
 
 <div style="margin-top: auto; padding: 1rem 1.25rem; border-top: 1px solid var(--border-light);">
-    <button class="nav-item" style="width: 100%; background: none; border: none; cursor: pointer; text-align: left; padding: 0.6rem 0.75rem; color: var(--text-muted); border-radius: 8px;"
-            @onclick="Logout">
+    <a href="/account/logout" class="nav-item" style="display:block; width: 100%; background: none; border: none; cursor: pointer; text-align: left; padding: 0.6rem 0.75rem; color: var(--text-muted); border-radius: 8px; text-decoration:none;">
         <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
-    </button>
+    </a>
 </div>
 
 @code {
-    private void Logout()
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
-        AuthState.Logout();
-        NavManager.NavigateTo("/");
+        if (AuthStateTask != null)
+        {
+            var authState = await AuthStateTask;
+            await AuthState.EnsureLoadedAsync(authState);
+        }
     }
+
+    public void Dispose() { }
 }

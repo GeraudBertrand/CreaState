@@ -28,16 +28,19 @@ namespace CreaState.Services
         public async Task<bool> UpdateMemberRolesAsync(int membreId, List<int> roleIds)
         {
             var membre = await _db.Membres
-                .Include(m => m.MembreRoles)
+                .Include(m => m.UserRoles)
                 .FirstOrDefaultAsync(m => m.Id == membreId);
             if (membre == null) return false;
 
             var validRoles = await _db.Roles.Where(r => roleIds.Contains(r.Id)).ToListAsync();
             if (validRoles.Count != roleIds.Count) return false;
 
-            _db.MembreRoles.RemoveRange(membre.MembreRoles);
+            // Remove existing roles via the UserRoles join table
+            var existingUserRoles = _db.Set<AppUserRole>().Where(ur => ur.UserId == membreId);
+            _db.Set<AppUserRole>().RemoveRange(existingUserRoles);
+
             foreach (var roleId in roleIds)
-                _db.MembreRoles.Add(new MembreRole { MembreId = membreId, RoleId = roleId });
+                _db.Set<AppUserRole>().Add(new AppUserRole { UserId = membreId, RoleId = roleId });
 
             await _db.SaveChangesAsync();
             return true;

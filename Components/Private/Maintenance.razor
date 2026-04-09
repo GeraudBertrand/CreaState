@@ -196,7 +196,7 @@
     #if DEBUG
     private void LoadMockRecords()
     {
-        var mockMember = new Membre { Id = 10, FirstName = "Hugo", LastName = "Petit", MembreRoles = [new MembreRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }] };
+        var mockMember = new Membre { Id = 10, FirstName = "Hugo", LastName = "Petit", UserRoles = [new AppUserRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }] };
 
         AllRecords = new List<Models.Maintenance>
         {

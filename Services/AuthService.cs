@@ -1,95 +1,145 @@
+using CreaState.Data;
 using CreaState.Models;
 using CreaState.Repositories.Interfaces;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace CreaState.Services
 {
     public class AuthService
     {
-        private readonly IUserRepository _userRepo;
+        private readonly UserManager<User> _userManager;
+        private readonly SignInManager<User> _signInManager;
         private readonly IMembreRepository _membreRepo;
-        private readonly IRoleRepository _roleRepo;
-        private readonly PasswordHasher<User> _hasher = new();
 
         private const string AllowedDomain = "@edu.devinci.fr";
 
-        public AuthService(IUserRepository userRepo, IMembreRepository membreRepo, IRoleRepository roleRepo)
+        public AuthService(UserManager<User> userManager, SignInManager<User> signInManager, IMembreRepository membreRepo)
         {
-            _userRepo = userRepo;
+            _userManager = userManager;
+            _signInManager = signInManager;
             _membreRepo = membreRepo;
-            _roleRepo = roleRepo;
         }
 
-        public async Task<(bool Success, string? Error)> RegisterAsync(
+        /// <summary>
+        /// Register a new user (Eleve by default). Uses Identity's UserManager.
+        /// Returns the user and any errors.
+        /// </summary>
+        public async Task<(bool Success, string? Error, User? User)> RegisterAsync(
             string email, string password, string firstName, string lastName, ClassYearEnum classYear)
         {
             email = email.Trim().ToLowerInvariant();
 
             if (!email.EndsWith(AllowedDomain))
-                return (false, $"L'email doit se terminer par {AllowedDomain}");
+                return (false, $"L'email doit se terminer par {AllowedDomain}", null);
 
-            if (await _userRepo.GetByEmailAsync(email) != null)
-                return (false, "Un compte existe déjà avec cet email");
+            var existing = await _userManager.FindByEmailAsync(email);
+            if (existing != null)
+                return (false, "Un compte existe deja avec cet email", null);
 
-            if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
-                return (false, "Le mot de passe doit contenir au moins 6 caractères");
-
-            var defaultRole = await _roleRepo.GetDefaultRoleAsync();
-            if (defaultRole == null)
-                return (false, "Erreur de configuration : aucun rôle par défaut défini");
-
-            // Par défaut, on crée un User (Eleve). Pour un Membre, on utilise PromoteToMembre.
             var user = new User
             {
+                UserName = email,
+                Email = email,
                 FirstName = firstName.Trim(),
                 LastName = lastName.Trim(),
-                Email = email,
                 ClassYear = classYear,
                 UserType = UserType.Eleve,
                 CreatedAt = DateTime.UtcNow
             };
 
-            user.PasswordHash = _hasher.HashPassword(user, password);
+            var result = await _userManager.CreateAsync(user, password);
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                return (false, errors, null);
+            }
 
-            await _userRepo.AddAsync(user);
+            // Assign default "Eleve" role
+            await _userManager.AddToRoleAsync(user, "Eleve");
 
-            return (true, null);
+            return (true, null, user);
         }
 
-        public async Task<Membre?> LoginAsync(string email, string password)
+        /// <summary>
+        /// Login: validates credentials via Identity, returns LoginResult with User + Membre info.
+        /// Does NOT set the cookie — the caller (controller) does that via SignInManager.
+        /// </summary>
+        public async Task<LoginResult?> ValidateLoginAsync(string email, string password)
         {
             email = email.Trim().ToLowerInvariant();
 
-            var membre = await _membreRepo.GetByEmailWithRolesAsync(email);
-            if (membre == null || string.IsNullOrEmpty(membre.PasswordHash))
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
                 return null;
 
-            var result = _hasher.VerifyHashedPassword(membre, membre.PasswordHash, password);
-            if (result == PasswordVerificationResult.Failed)
+            var passwordValid = await _userManager.CheckPasswordAsync(user, password);
+            if (!passwordValid)
                 return null;
 
-            membre.LastLoginAt = DateTime.UtcNow;
-            await _membreRepo.UpdateAsync(membre);
+            // Check if email is confirmed
+            if (!user.EmailConfirmed)
+                return new LoginResult { User = user, Membre = null, EmailNotConfirmed = true };
 
-            return membre;
-        }
-
-        public async Task<User?> LoginUserAsync(string email, string password)
-        {
-            email = email.Trim().ToLowerInvariant();
-
-            var user = await _userRepo.GetByEmailAsync(email);
-            if (user == null || string.IsNullOrEmpty(user.PasswordHash))
-                return null;
-
-            var result = _hasher.VerifyHashedPassword(user, user.PasswordHash, password);
-            if (result == PasswordVerificationResult.Failed)
-                return null;
-
+            // Update last login
             user.LastLoginAt = DateTime.UtcNow;
-            await _userRepo.UpdateAsync(user);
+            await _userManager.UpdateAsync(user);
 
-            return user;
+            // If the user is a Membre, load with roles and permissions
+            Membre? membre = null;
+            if (user.UserType == UserType.Membre)
+            {
+                membre = await _membreRepo.GetByEmailWithRolesAsync(email);
+            }
+
+            return new LoginResult { User = user, Membre = membre };
         }
+
+        /// <summary>
+        /// Sign in the user with a persistent cookie via Identity SignInManager.
+        /// Must be called from an HTTP context (controller), not from Blazor Server directly.
+        /// </summary>
+        public async Task SignInAsync(User user, bool isPersistent = true)
+        {
+            await _signInManager.SignInAsync(user, isPersistent);
+        }
+
+        /// <summary>
+        /// Sign out — clears the authentication cookie.
+        /// </summary>
+        public async Task SignOutAsync()
+        {
+            await _signInManager.SignOutAsync();
+        }
+
+        /// <summary>
+        /// Generate email confirmation token for a user.
+        /// </summary>
+        public async Task<string> GenerateEmailConfirmationTokenAsync(User user)
+        {
+            return await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        }
+
+        /// <summary>
+        /// Confirm user's email with token.
+        /// </summary>
+        public async Task<bool> ConfirmEmailAsync(int userId, string token)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null) return false;
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            return result.Succeeded;
+        }
+    }
+
+    public class LoginResult
+    {
+        public required User User { get; set; }
+        public Membre? Membre { get; set; }
+        public bool EmailNotConfirmed { get; set; }
+
+        public bool IsMembre => Membre != null;
+        public bool HasPrivateAccess => Membre?.UserRoles.Any(ur => ur.Role?.Name != "Eleve") ?? false;
     }
 }

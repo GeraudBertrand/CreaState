@@ -43,13 +43,13 @@ public partial class PublicRequestDetail
         {
             Id = 16, FirstName = "Nathan", LastName = "Simon",
             Email = "nathan.simon@edu.devinci.fr",
-            MembreRoles = [new MembreRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }]
+            UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }]
         };
         var mockManager = new Membre
         {
             Id = 12, FirstName = "Hugo", LastName = "Petit",
             Email = "hugo.petit@edu.devinci.fr",
-            MembreRoles = [new MembreRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }]
+            UserRoles = [new AppUserRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }]
         };
 
         return new Requete

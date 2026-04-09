@@ -6,7 +6,6 @@ namespace CreaState.Models
 
         public bool IsActive { get; set; } = true;
 
-        // Navigation
-        public ICollection<MembreRole> MembreRoles { get; set; } = [];
+        // Les rôles sont hérités de User.UserRoles (via AppUserRole / Identity)
     }
 }

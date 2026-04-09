@@ -62,7 +62,7 @@ public partial class RequestDetail
         {
             Id = 16, FirstName = "Nathan", LastName = "Simon",
             Email = "nathan.simon@edu.devinci.fr",
-            MembreRoles = [new MembreRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }]
+            UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }]
         };
 
         Request = new Requete
@@ -83,7 +83,7 @@ public partial class RequestDetail
             },
             Commentaires = new List<RequeteCommentaire>
             {
-                new() { Id = 1, RequeteId = Id, AuteurId = 12, Auteur = new Membre { Id = 12, FirstName = "Hugo", LastName = "Petit", Email = "hugo.petit@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }] }, Contenu = "Le fichier support_bras.stl a une épaisseur trop fine au niveau de la charnière.", Date = DateTime.UtcNow.AddDays(-1).AddHours(-3) },
+                new() { Id = 1, RequeteId = Id, AuteurId = 12, Auteur = new Membre { Id = 12, FirstName = "Hugo", LastName = "Petit", Email = "hugo.petit@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }] }, Contenu = "Le fichier support_bras.stl a une épaisseur trop fine au niveau de la charnière.", Date = DateTime.UtcNow.AddDays(-1).AddHours(-3) },
                 new() { Id = 2, RequeteId = Id, AuteurId = 16, Auteur = mockUser, Contenu = "D'accord, je corrige ça ce soir. Merci pour le retour !", Date = DateTime.UtcNow.AddDays(-1).AddHours(-1) },
             }
         };

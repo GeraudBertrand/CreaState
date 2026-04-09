@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/Project/CreaState/**)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet ef:*)"
+    ]
+  }
+}

@@ -2,16 +2,15 @@
 @layout LoginLayout
 
 @inject NavigationManager NavManager
-@inject AuthService AuthService
 
-<PageTitle>Inscription - Créalab</PageTitle>
+<PageTitle>Inscription - Crealab</PageTitle>
 
 <div class="login-wrapper theme-industrial">
     <div class="login-card animate-fade-in">
         <div class="login-header">
             <i class="fa-solid fa-user-plus fa-3x"></i>
-            <h2>Inscription Créalab</h2>
-            <p>Créez votre compte avec votre email école.</p>
+            <h2>Inscription Crealab</h2>
+            <p>Creez votre compte avec votre email ecole.</p>
         </div>
 
         <div class="login-form">
@@ -22,120 +21,70 @@
                 </div>
             }
 
-            <div class="flex-row d-flex justify-content-around">
-                <div class="form-group">
-                    <label for="firstName">Prénom</label>
-                    <input type="text" id="firstName" class="form-control" @bind="FirstName" placeholder="Jean" />
+            @* Form POST to /account/register *@
+            <form method="post" action="/account/register">
+                <div class="flex-row d-flex justify-content-around">
+                    <div class="form-group">
+                        <label for="firstName">Prenom</label>
+                        <input type="text" id="firstName" name="firstName" class="form-control" placeholder="Jean" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastName">Nom</label>
+                        <input type="text" id="lastName" name="lastName" class="form-control" placeholder="Dupont" required />
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="lastName">Nom</label>
-                    <input type="text" id="lastName" class="form-control" @bind="LastName" placeholder="Dupont" />
+                    <label for="email">Email ecole</label>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="prenom.nom@edu.devinci.fr" required />
+                    <small style="color: var(--text-muted); font-size: 0.8rem;">Seuls les emails @@edu.devinci.fr sont acceptes.</small>
                 </div>
-            </div>
 
-            <div class="form-group">
-                <label for="email">Email école</label>
-                <input type="email" id="email" class="form-control" @bind="Email" placeholder="prenom.nom@edu.devinci.fr" />
-                <small style="color: var(--text-muted); font-size: 0.8rem;">Seuls les emails @@edu.devinci.fr sont acceptés.</small>
-            </div>
+                <div class="form-group">
+                    <label for="classYear">Annee</label>
+                    <select id="classYear" name="classYear" class="form-control">
+                        @foreach (var year in Enum.GetValues<ClassYearEnum>())
+                        {
+                            <option value="@((int)year)">@year.GetDisplayName()</option>
+                        }
+                    </select>
+                </div>
 
-            <div class="form-group">
-                <label for="classYear">Année</label>
-                <select id="classYear" class="form-control" @bind="ClassYear">
-                    @foreach (var year in Enum.GetValues<ClassYearEnum>())
-                    {
-                        <option value="@year">@year.GetDisplayName()</option>
-                    }
-                </select>
-            </div>
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="Min. 6 caracteres" required />
+                </div>
 
-            <div class="form-group">
-                <label for="password">Mot de passe</label>
-                <input type="password" id="password" class="form-control" @bind="Password" placeholder="Min. 6 caractères" />
-            </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmer le mot de passe</label>
+                    <input type="password" id="confirmPassword" class="form-control" placeholder="--------" required />
+                </div>
 
-            <div class="form-group">
-                <label for="confirmPassword">Confirmer le mot de passe</label>
-                <input type="password" id="confirmPassword" class="form-control" @bind="ConfirmPassword" @onkeyup="HandleKeyUp" placeholder="••••••••" />
-            </div>
-
-            <button class="btn-primary" @onclick="AttemptRegister" disabled="@IsLoading">
-                @if (IsLoading)
-                {
-                    <i class="fa-solid fa-spinner fa-spin"></i>
-                }
-                Créer mon compte
-            </button>
+                <button type="submit" class="btn-primary">
+                    Creer mon compte
+                </button>
+            </form>
 
             <button class="btn-secondary" @onclick="GoToLogin">
-                Déjà inscrit ? Se connecter
+                Deja inscrit ? Se connecter
             </button>
         </div>
     </div>
 </div>
 
 @code {
-    private string FirstName { get; set; } = "";
-    private string LastName { get; set; } = "";
-    private string Email { get; set; } = "";
-    private string Password { get; set; } = "";
-    private string ConfirmPassword { get; set; } = "";
-    private ClassYearEnum ClassYear { get; set; } = ClassYearEnum.A1;
     private string ErrorMessage { get; set; } = "";
-    private bool IsLoading { get; set; } = false;
 
-    private async Task AttemptRegister()
+    protected override void OnInitialized()
     {
-        ErrorMessage = "";
-
-        if (string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
+        var uri = new Uri(NavManager.Uri);
+        if (uri.Query.Contains("error="))
         {
-            ErrorMessage = "Veuillez remplir votre prénom et nom.";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(Email))
-        {
-            ErrorMessage = "Veuillez entrer votre email école.";
-            return;
-        }
-
-        if (Password != ConfirmPassword)
-        {
-            ErrorMessage = "Les mots de passe ne correspondent pas.";
-            return;
-        }
-
-        IsLoading = true;
-        try
-        {
-            var (success, error) = await AuthService.RegisterAsync(Email, Password, FirstName, LastName, ClassYear);
-            if (success)
-            {
-                NavManager.NavigateTo("/?registered=true");
-            }
-            else
-            {
-                ErrorMessage = error ?? "Erreur lors de l'inscription.";
-            }
-        }
-        finally
-        {
-            IsLoading = false;
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            ErrorMessage = query["error"] ?? "Erreur lors de l'inscription.";
         }
     }
 
-    private void GoToLogin()
-    {
-        NavManager.NavigateTo("/");
-    }
-
-    private async Task HandleKeyUp(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter")
-        {
-            await AttemptRegister();
-        }
-    }
+    private void GoToLogin() => NavManager.NavigateTo("/");
 }

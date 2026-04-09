@@ -8,5 +8,7 @@ namespace CreaState.DTOs.Auth
         public string? Email { get; set; }
         public string? FullName { get; set; }
         public string? UserType { get; set; }
+        public bool IsMembre { get; set; }
+        public bool HasPrivateAccess { get; set; }
     }
 }

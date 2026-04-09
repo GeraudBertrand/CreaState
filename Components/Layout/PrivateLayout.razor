@@ -1,5 +1,6 @@
 ﻿@inherits LayoutComponentBase
 @inject PageHeaderService HeaderService
+@inject AuthStateProvider AuthState
 @implements IDisposable
 
 <div class="page">
@@ -33,15 +34,23 @@
 
 
 @code{
-    protected override void OnInitialized()
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
     {
-        // On s'abonne aux changements de titre
         HeaderService.OnChange += StateHasChanged;
+
+        // Ensure the AuthStateProvider has loaded the current user/membre from DB
+        if (AuthStateTask != null)
+        {
+            var authState = await AuthStateTask;
+            await AuthState.EnsureLoadedAsync(authState);
+        }
     }
 
     public void Dispose()
     {
-        // On se désabonne pour éviter les fuites de mémoire
         HeaderService.OnChange -= StateHasChanged;
     }
 }

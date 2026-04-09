@@ -1,15 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 
 namespace CreaState.Models
 {
-    public class Role
+    public class Role : IdentityRole<int>
     {
-        [Key]
-        public int Id { get; set; }
-
-        [Required, MaxLength(50)]
-        public string Name { get; set; } = string.Empty;
-
         [Required, MaxLength(100)]
         public string DisplayName { get; set; } = string.Empty;
 
@@ -20,6 +15,6 @@ namespace CreaState.Models
 
         // Navigation
         public ICollection<RolePermission> RolePermissions { get; set; } = [];
-        public ICollection<MembreRole> MembreRoles { get; set; } = [];
+        public ICollection<AppUserRole> UserRoles { get; set; } = [];
     }
 }

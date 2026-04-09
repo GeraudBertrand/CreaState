@@ -11,25 +11,25 @@ namespace CreaState.Repositories.Implementations
 
         public async Task<Membre?> GetWithRolesAsync(int id)
             => await _dbSet
-                .Include(m => m.MembreRoles).ThenInclude(mr => mr.Role!)
+                .Include(m => m.UserRoles).ThenInclude(ur => ur.Role!)
                     .ThenInclude(r => r.RolePermissions).ThenInclude(rp => rp.Permission)
                 .FirstOrDefaultAsync(m => m.Id == id);
 
         public async Task<Membre?> GetByEmailWithRolesAsync(string email)
             => await _dbSet
-                .Include(m => m.MembreRoles).ThenInclude(mr => mr.Role!)
+                .Include(m => m.UserRoles).ThenInclude(ur => ur.Role!)
                     .ThenInclude(r => r.RolePermissions).ThenInclude(rp => rp.Permission)
                 .FirstOrDefaultAsync(m => m.Email == email);
 
         public async Task<List<Membre>> GetAllActiveAsync()
             => await _dbSet
-                .Include(m => m.MembreRoles).ThenInclude(mr => mr.Role!)
+                .Include(m => m.UserRoles).ThenInclude(ur => ur.Role!)
                 .Where(m => m.IsActive)
                 .ToListAsync();
 
         public async Task<List<Membre>> GetAllWithRolesAsync()
             => await _dbSet
-                .Include(m => m.MembreRoles).ThenInclude(mr => mr.Role!)
+                .Include(m => m.UserRoles).ThenInclude(ur => ur.Role!)
                 .ToListAsync();
     }
 }
