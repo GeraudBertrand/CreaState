@@ -220,15 +220,14 @@
             _ => RequestType.Other
         };
 
-        var currentMember = AuthState.CurrentMember;
+        var currentUser = AuthState.CurrentUser;
 
-        var request = new Request
+        var request = new Requete
         {
             Type = requestType,
             Title = TicketModel.ProjectName,
             Description = TicketModel.Description,
-            MaterialPreference = TicketModel.MaterialPref,
-            RequestedByMemberId = currentMember?.Id ?? 0
+            DemandeurId = currentUser?.Id ?? 0
         };
 
         // Préparer les fichiers

@@ -31,7 +31,7 @@
     <div class="filter-bar">
         <div class="filter-group">
             <select class="form-input" @bind="FilterPrinterId" @bind:after="LoadJobs">
-                <option value="">Toutes les imprimantes</option>
+                <option value="0">Toutes les imprimantes</option>
                 @foreach (var printer in Printers)
                 {
                     <option value="@printer.Id">@printer.Name</option>
@@ -74,9 +74,18 @@
                     <tbody>
                         @foreach (var job in PrintJobs)
                         {
+                            var statusCss = job.Status switch
+                            {
+                                PrintStatus.Success => "status-success",
+                                PrintStatus.Failed => "status-failed",
+                                PrintStatus.Cancelled => "status-cancelled",
+                                _ => ""
+                            };
+                            var durationLabel = $"{(int)job.Duration.TotalHours}h {job.Duration.Minutes:00}m";
+
                             <tr class="job-row">
                                 <td>
-                                    <span class="status-badge @job.StatusCssClass">
+                                    <span class="status-badge @statusCss">
                                         @if (job.Status == PrintStatus.Success)
                                         {
                                             <i class="fa-solid fa-check"></i>
@@ -89,16 +98,16 @@
                                         {
                                             <i class="fa-solid fa-ban"></i>
                                         }
-                                        @job.StatusLabel
+                                        @job.Status.GetDisplayName()
                                     </span>
                                 </td>
                                 <td class="file-cell">
                                     <i class="fa-solid fa-file-code file-icon"></i>
                                     <strong>@job.FileName</strong>
                                 </td>
-                                <td>@job.PrinterName</td>
+                                <td>@(job.Printer?.Name ?? "—")</td>
                                 <td>@job.StartTime.ToString("dd/MM/yyyy HH:mm")</td>
-                                <td>@job.DurationLabel</td>
+                                <td>@durationLabel</td>
                                 <td class="weight-cell">@job.FilamentWeightGrams g</td>
                             </tr>
                         }
@@ -112,7 +121,7 @@
 @code {
     private List<PrintJob> PrintJobs = new();
     private List<Printer> Printers = new();
-    private string FilterPrinterId = "";
+    private int FilterPrinterId = 0;
     private string FilterStatus = "";
 
     private double TotalWeight => Math.Round(PrintJobs.Sum(j => j.FilamentWeightGrams) / 1000.0, 2);
@@ -129,7 +138,7 @@
 
     private async Task LoadJobs()
     {
-        string? printerId = string.IsNullOrEmpty(FilterPrinterId) ? null : FilterPrinterId;
+        int? printerId = FilterPrinterId == 0 ? null : FilterPrinterId;
         PrintStatus? status = null;
         if (Enum.TryParse<PrintStatus>(FilterStatus, out var parsed))
             status = parsed;
@@ -144,10 +153,10 @@
     #if DEBUG
     private void LoadMockPrintJobs()
     {
-        var printerNames = new Dictionary<string, string>
+        var printerNames = new Dictionary<int, string>
         {
-            { "printer-ratome", "Ratome" }, { "printer-bonnie", "Bonnie" },
-            { "printer-hubble", "Hubble" }, { "printer-r2d2", "R2-D2" }
+            { 1, "Ratome" }, { 2, "Bonnie" },
+            { 3, "Hubble" }, { 4, "R2-D2" }
         };
         var files = new[] { "support_phone.3mf", "engrenage_v2.stl", "boitier_arduino.3mf", "figurine_chat.stl", "clip_cable.stl",
                             "pied_laptop.3mf", "cache_prise.stl", "bras_robot.3mf", "pot_plante.stl", "coque_raspberry.3mf" };

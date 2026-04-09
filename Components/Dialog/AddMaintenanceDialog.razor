@@ -20,8 +20,8 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Machine</label>
-                        <select class="form-input" @bind="NewRecord.PrinterId">
-                            <option value="">— Sélectionner —</option>
+                        <select class="form-input" @bind="SelectedPrinterId">
+                            <option value="0">— Sélectionner —</option>
                             @foreach (var p in Printers)
                             {
                                 <option value="@p.Id">@p.Name (@p.Model)</option>
@@ -30,7 +30,7 @@
                     </div>
                     <div class="form-group">
                         <label>Type d'intervention</label>
-                        <select class="form-input" @bind="NewRecord.Type">
+                        <select class="form-input" @bind="SelectedType">
                             @foreach (var t in Enum.GetValues<MaintenanceType>())
                             {
                                 <option value="@t">@t.GetDisplayName()</option>
@@ -40,16 +40,12 @@
                 </div>
                 <div class="form-group">
                     <label>Description détaillée</label>
-                    <textarea class="form-input" @bind="NewRecord.Description" rows="4" placeholder="Décrivez l'intervention réalisée, les pièces changées, les réglages effectués..."></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Prochaine maintenance prévue <span class="optional">(optionnel)</span></label>
-                    <input type="date" class="form-input" @bind="NextScheduledDate" />
+                    <textarea class="form-input" @bind="Description" rows="4" placeholder="Décrivez l'intervention réalisée, les pièces changées, les réglages effectués..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-action btn-secondary" @onclick="Close">Annuler</button>
-                <button class="btn-action btn-primary-fill" @onclick="Submit" disabled="@string.IsNullOrWhiteSpace(NewRecord.PrinterId)">
+                <button class="btn-action btn-primary-fill" @onclick="Submit" disabled="@(SelectedPrinterId == 0)">
                     <i class="fa-solid fa-plus"></i> Enregistrer
                 </button>
             </div>
@@ -60,19 +56,19 @@
 @code {
     [Parameter] public bool Show { get; set; }
     [Parameter] public List<Printer> Printers { get; set; } = new();
-    [Parameter] public string? PreselectedPrinterId { get; set; }
+    [Parameter] public int? PreselectedPrinterId { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
-    [Parameter] public EventCallback<(MaintenanceRecord Record, DateTime? NextDate)> OnSubmit { get; set; }
+    [Parameter] public EventCallback<Models.Maintenance> OnSubmit { get; set; }
 
-    private MaintenanceRecord NewRecord = new();
-    private DateTime? NextScheduledDate;
+    private int SelectedPrinterId;
+    private MaintenanceType SelectedType = MaintenanceType.Nettoyage;
+    private string Description = "";
 
     protected override void OnParametersSet()
     {
-        if (Show && string.IsNullOrEmpty(NewRecord.PrinterId) && !string.IsNullOrEmpty(PreselectedPrinterId))
+        if (Show && SelectedPrinterId == 0 && PreselectedPrinterId.HasValue)
         {
-            NewRecord = new MaintenanceRecord { PrinterId = PreselectedPrinterId };
-            NextScheduledDate = null;
+            SelectedPrinterId = PreselectedPrinterId.Value;
         }
     }
 
@@ -80,9 +76,17 @@
 
     private async Task Submit()
     {
-        if (string.IsNullOrWhiteSpace(NewRecord.PrinterId)) return;
-        await OnSubmit.InvokeAsync((NewRecord, NextScheduledDate));
-        NewRecord = new();
-        NextScheduledDate = null;
+        if (SelectedPrinterId == 0) return;
+        var record = new Models.Maintenance
+        {
+            PrinterId = SelectedPrinterId,
+            Type = SelectedType,
+            Description = Description,
+            Date = DateTime.UtcNow
+        };
+        await OnSubmit.InvokeAsync(record);
+        SelectedPrinterId = 0;
+        SelectedType = MaintenanceType.Nettoyage;
+        Description = "";
     }
 }

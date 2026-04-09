@@ -1,6 +1,5 @@
 using System.Globalization;
 using CreaState.DTOs.Consommables;
-using CreaState.DTOs.Printers;
 using CreaState.DTOs.Evenements;
 using CreaState.DTOs.Formations;
 using CreaState.DTOs.Maintenance;

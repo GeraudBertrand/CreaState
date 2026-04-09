@@ -6,16 +6,21 @@
     Créalab
 </div>
 
-@if (AuthState.CurrentMember != null)
+@if (AuthState.CurrentMembre != null)
 {
+    var m = AuthState.CurrentMembre;
+    var initials = $"{m.FirstName[0]}{m.LastName[0]}".ToUpper();
+    var fullName = $"{m.FirstName} {m.LastName}";
+    var roleLabel = string.Join(", ", m.MembreRoles.Select(mr => mr.Role?.DisplayName ?? ""));
+
     <div class="user-info" style="padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--border-light);">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
             <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-blue); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600;">
-                @AuthState.CurrentMember.Initials
+                @initials
             </div>
             <div>
-                <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">@AuthState.CurrentMember.FullName</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted);">@AuthState.CurrentMember.RoleLabel</div>
+                <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-main);">@fullName</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">@roleLabel</div>
             </div>
         </div>
     </div>

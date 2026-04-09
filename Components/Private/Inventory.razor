@@ -26,13 +26,7 @@
     <!-- Filtres et actions -->
     <div class="filter-bar">
         <div class="filter-group">
-            <select class="form-input" @bind="FilterCategory" @bind:after="LoadItems">
-                <option value="">Toutes catégories</option>
-                @foreach (var cat in Enum.GetValues<InventoryCategory>())
-                {
-                    <option value="@cat">@cat.GetDisplayName()</option>
-                }
-            </select>
+            <input class="form-input" @bind="FilterType" @bind:event="oninput" @bind:after="LoadItems" placeholder="Filtrer par type..." />
         </div>
         @if (IsManager)
         {
@@ -52,7 +46,7 @@
                 <div class="low-stock-badges">
                     @foreach (var item in LowStockItems)
                     {
-                        <span class="badge-low">@item.Name — @item.QuantityRemaining @item.Unit</span>
+                        <span class="badge-low">@item.Type @(!string.IsNullOrEmpty(item.CouleurNom) ? item.CouleurNom : "") — @item.Quantite</span>
                     }
                 </div>
             </div>
@@ -74,10 +68,10 @@
                 <table class="inventory-table">
                     <thead>
                         <tr>
-                            <th>Article</th>
-                            <th>Catégorie</th>
-                            <th>Type / Couleur</th>
+                            <th>Type</th>
+                            <th>Couleur</th>
                             <th>Stock</th>
+                            <th>Seuil</th>
                             <th>Niveau</th>
                             @if (IsManager)
                             {
@@ -88,46 +82,34 @@
                     <tbody>
                         @foreach (var item in Items)
                         {
-                            <tr class="table-row @(item.IsLowStock ? "row-low" : "")">
-                                <td>
-                                    <div class="article-cell">
-                                        <strong>@item.Name</strong>
-                                        @if (!string.IsNullOrEmpty(item.Brand))
-                                        {
-                                            <span class="article-brand">@item.Brand</span>
-                                        }
-                                    </div>
-                                </td>
-                                <td><span class="category-label">@item.Category.GetDisplayName()</span></td>
+                            var isLow = item.Quantite <= item.Seuil;
+                            var pct = item.Seuil > 0 ? Math.Min(100, (int)((double)item.Quantite / item.Seuil * 100)) : 100;
+
+                            <tr class="table-row @(isLow ? "row-low" : "")">
+                                <td><strong>@item.Type</strong></td>
                                 <td>
                                     <div class="material-cell">
-                                        @if (!string.IsNullOrEmpty(item.Color))
+                                        @if (!string.IsNullOrEmpty(item.CouleurHex))
                                         {
-                                            <span class="color-dot" style="background: @item.Color;"></span>
+                                            <span class="color-dot" style="background: @item.CouleurHex;"></span>
                                         }
-                                        @if (!string.IsNullOrEmpty(item.MaterialType))
+                                        @if (!string.IsNullOrEmpty(item.CouleurNom))
                                         {
-                                            <span>@item.MaterialType</span>
-                                        }
-                                        @if (!string.IsNullOrEmpty(item.Color))
-                                        {
-                                            <span class="color-name">@item.Color</span>
+                                            <span>@item.CouleurNom</span>
                                         }
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="stock-value @(item.IsLowStock ? "stock-danger" : "")">
-                                        @item.QuantityRemaining
-                                    </span>
-                                    <span class="stock-total">/ @item.InitialQuantity @item.Unit</span>
+                                    <span class="stock-value @(isLow ? "stock-danger" : "")">@item.Quantite</span>
                                 </td>
+                                <td>@item.Seuil</td>
                                 <td>
                                     <div class="progress-bar-container">
                                         <div class="progress-bar-bg">
-                                            <div class="progress-bar-fill @(item.IsLowStock ? "fill-danger" : item.PercentageRemaining < 50 ? "fill-warning" : "fill-ok")"
-                                                 style="width: @(item.PercentageRemaining)%;"></div>
+                                            <div class="progress-bar-fill @(isLow ? "fill-danger" : pct < 50 ? "fill-warning" : "fill-ok")"
+                                                 style="width: @(pct)%;"></div>
                                         </div>
-                                        <span class="progress-label @(item.IsLowStock ? "stock-danger" : "")">@item.PercentageRemaining%</span>
+                                        <span class="progress-label @(isLow ? "stock-danger" : "")">@pct%</span>
                                     </div>
                                 </td>
                                 @if (IsManager)
@@ -164,15 +146,14 @@
     OnSubmit="HandleAddItem" />
 
 @code {
-    private List<InventoryItem> Items = new();
-    private List<InventoryItem> LowStockItems = new();
-    private string FilterCategory = "";
+    private List<Consommable> Items = new();
+    private List<Consommable> LowStockItems = new();
+    private string FilterType = "";
     private bool IsManager = false;
     private bool ShowAddForm = false;
 
-    // Edition inline
     private int EditingItemId = 0;
-    private double EditQuantity = 0;
+    private int EditQuantity = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -185,33 +166,28 @@
 
     private async Task LoadItems()
     {
-        InventoryCategory? cat = null;
-        if (Enum.TryParse<InventoryCategory>(FilterCategory, out var parsed))
-            cat = parsed;
+        string? type = string.IsNullOrWhiteSpace(FilterType) ? null : FilterType;
 
-        Items = await InventoryService.GetAllItemsAsync(cat);
+        Items = await InventoryService.GetAllItemsAsync(type);
         LowStockItems = await InventoryService.GetLowStockItemsAsync();
 
         #if DEBUG
-        if (Items.Count == 0 && cat == null) LoadMockItems();
+        if (Items.Count == 0 && type == null) LoadMockItems();
         #endif
     }
 
     #if DEBUG
     private void LoadMockItems()
     {
-        Items = new List<InventoryItem>
+        Items = new List<Consommable>
         {
-            new() { Id = 1, Name = "PLA Noir 1kg", Category = InventoryCategory.Filament, Brand = "Bambu Lab", Color = "#1a1a1a", MaterialType = "PLA", QuantityRemaining = 620, InitialQuantity = 1000, Unit = "g", LowStockThreshold = 200 },
-            new() { Id = 2, Name = "PLA Blanc 1kg", Category = InventoryCategory.Filament, Brand = "Bambu Lab", Color = "#ffffff", MaterialType = "PLA", QuantityRemaining = 150, InitialQuantity = 1000, Unit = "g", LowStockThreshold = 200 },
-            new() { Id = 3, Name = "PETG Bleu 1kg", Category = InventoryCategory.Filament, Brand = "Elegoo", Color = "#2980b9", MaterialType = "PETG", QuantityRemaining = 830, InitialQuantity = 1000, Unit = "g", LowStockThreshold = 200 },
-            new() { Id = 4, Name = "ABS Rouge 750g", Category = InventoryCategory.Filament, Brand = "eSun", Color = "#e74c3c", MaterialType = "ABS", QuantityRemaining = 90, InitialQuantity = 750, Unit = "g", LowStockThreshold = 150 },
-            new() { Id = 5, Name = "Résine Standard Grise", Category = InventoryCategory.Resin, Brand = "Elegoo", Color = "#95a5a6", MaterialType = "Résine UV", QuantityRemaining = 350, InitialQuantity = 500, Unit = "ml", LowStockThreshold = 100 },
-            new() { Id = 6, Name = "Contreplaqué 3mm (A4)", Category = InventoryCategory.LaserMaterial, Brand = null, Color = null, MaterialType = "Bois", QuantityRemaining = 12, InitialQuantity = 30, Unit = "pcs", LowStockThreshold = 5 },
-            new() { Id = 7, Name = "Plexiglas transparent 3mm", Category = InventoryCategory.LaserMaterial, Brand = null, Color = null, MaterialType = "PMMA", QuantityRemaining = 4, InitialQuantity = 15, Unit = "pcs", LowStockThreshold = 3 },
-            new() { Id = 8, Name = "Buses 0.4mm (lot)", Category = InventoryCategory.Other, Brand = "Bambu Lab", Color = null, MaterialType = null, QuantityRemaining = 6, InitialQuantity = 10, Unit = "pcs", LowStockThreshold = 2 },
+            new() { Id = 1, Type = "PLA", CouleurNom = "Noir", CouleurHex = "#1a1a1a", Quantite = 620, Seuil = 200 },
+            new() { Id = 2, Type = "PLA", CouleurNom = "Blanc", CouleurHex = "#ffffff", Quantite = 150, Seuil = 200 },
+            new() { Id = 3, Type = "PETG", CouleurNom = "Bleu", CouleurHex = "#2980b9", Quantite = 830, Seuil = 200 },
+            new() { Id = 4, Type = "ABS", CouleurNom = "Rouge", CouleurHex = "#e74c3c", Quantite = 90, Seuil = 150 },
+            new() { Id = 5, Type = "Résine UV", CouleurNom = "Grise", CouleurHex = "#95a5a6", Quantite = 350, Seuil = 100 },
         };
-        LowStockItems = Items.Where(i => i.IsLowStock).ToList();
+        LowStockItems = Items.Where(i => i.Quantite <= i.Seuil).ToList();
     }
     #endif
 
@@ -220,10 +196,10 @@
         ShowAddForm = true;
     }
 
-    private void StartEdit(InventoryItem item)
+    private void StartEdit(Consommable item)
     {
         EditingItemId = item.Id;
-        EditQuantity = item.QuantityRemaining;
+        EditQuantity = item.Quantite;
     }
 
     private async Task SaveQuantity(int itemId)
@@ -233,7 +209,7 @@
         await LoadItems();
     }
 
-    private async Task HandleAddItem(InventoryItem item)
+    private async Task HandleAddItem(Consommable item)
     {
         await InventoryService.AddItemAsync(item);
         ShowAddForm = false;

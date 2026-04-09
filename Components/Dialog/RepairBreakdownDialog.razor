@@ -10,7 +10,7 @@
                 </div>
                 <div>
                     <h5>Réparer — @(Record?.Printer?.Name ?? "")</h5>
-                    <span class="modal-subtitle">Panne signalée le @(Record?.PerformedAt.ToString("dd/MM/yyyy à HH:mm") ?? "")</span>
+                    <span class="modal-subtitle">Panne signalée le @(Record?.Date.ToString("dd/MM/yyyy à HH:mm") ?? "")</span>
                 </div>
                 <button class="modal-close" @onclick="Close">
                     <i class="fa-solid fa-xmark"></i>
@@ -50,11 +50,11 @@
 
 @code {
     [Parameter] public bool Show { get; set; }
-    [Parameter] public MaintenanceRecord? Record { get; set; }
+    [Parameter] public Models.Maintenance? Record { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback<(MaintenanceType Type, string Description)> OnSubmit { get; set; }
 
-    private MaintenanceType RepairType = MaintenanceType.Repair;
+    private MaintenanceType RepairType = MaintenanceType.Reparation;
     private string RepairDescription = "";
 
     private async Task Close() => await OnClose.InvokeAsync();
@@ -63,7 +63,7 @@
     {
         if (string.IsNullOrWhiteSpace(RepairDescription)) return;
         await OnSubmit.InvokeAsync((RepairType, RepairDescription));
-        RepairType = MaintenanceType.Repair;
+        RepairType = MaintenanceType.Reparation;
         RepairDescription = "";
     }
 }

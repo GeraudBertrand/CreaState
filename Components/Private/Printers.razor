@@ -1,7 +1,8 @@
-﻿@page "/private/printers"
+@page "/private/printers"
 @layout PrivateLayout
 @attribute [Authorize(Policy = "ViewPrinters")]
 
+@using CreaState.Services
 @inject PageHeaderService HeaderService
 @inject PrinterService PrinterService
 @implements IDisposable
@@ -30,83 +31,29 @@
         <div class="printer-grid">
             @foreach (var printer in Imprimantes)
             {
-                <PrinterCard printer="@printer" />
+                <PrinterCard Printer="@printer" />
             }
         </div>
     }
 </div>
 
 @code {
-    private List<Printer>? Imprimantes;
+    private List<PrinterRuntimeState>? Imprimantes;
 
     protected override void OnInitialized()
     {
         HeaderService.SetTitle("État du Parc", "Supervision en temps réel des Bambu Lab");
-        Imprimantes = PrinterService.GetPrinters();
+        Imprimantes = PrinterService.GetPrinterStates();
         PrinterService.OnChange += RefreshUI;
     }
 
     private void RefreshUI()
     {
-        // On demande à Blazor de redessiner la page car les données ont changé (ex: % +1)
         InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
-        // CRITIQUE : Se désabonner quand on quitte la page pour éviter les fuites de mémoire
         PrinterService.OnChange -= RefreshUI;
-    }
-
-    private void LoadMockData()
-    {
-        Imprimantes = new List<Printer>
-        {
-            new Printer {
-                Name = "Bambu A1 - 01",
-                Model = "A1",
-                Status = PrinterStatus.Printing,
-                Progress = 72,
-                CurrentFile = "IronMan_Helmet.gcode",
-                NozzleTemp = 215,
-                BedTemp = 60,
-                TimeRemainingMinutes = 45,
-                FilamentColor = "#d41a5f", // Magenta
-                FilamentType = "PLA Matte"
-            },
-            new Printer {
-                Name = "Bambu A1 - 02",
-                Model = "A1",
-                IpAddress = "192.168.1.51",
-                Status = PrinterStatus.Idle,
-                Progress = 0,
-                NozzleTemp = 25,
-                BedTemp = 22,
-                FilamentColor = "#0896b5", // Bleu
-                FilamentType = "PETG"
-            },
-            new Printer {
-                Name = "La X1 Carbon",
-                Model = "X1C",
-                IpAddress = "192.168.1.60",
-                Status = PrinterStatus.Printing,
-                Progress = 15,
-                CurrentFile = "Calibration_Flow.gcode",
-                NozzleTemp = 240,
-                BedTemp = 35,
-                TimeRemainingMinutes = 120,
-                FilamentColor = "#333333",
-                FilamentType = "PLA-CF"
-            },
-            new Printer {
-                Name = "Bambu A1 Mini",
-                Model = "A1 Mini",
-                Status = PrinterStatus.Error,
-                Progress = 45,
-                CurrentFile = "Echec.gcode",
-                FilamentColor = "#f18904", // Orange
-                FilamentType = "PLA"
-            }
-        };
     }
 }

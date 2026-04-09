@@ -1,4 +1,4 @@
-﻿@page "/private/admin"
+@page "/private/admin"
 @layout PrivateLayout
 @attribute [Authorize(Policy = "AdminOnly")]
 
@@ -20,10 +20,6 @@
         <button class="tab-btn @(ActiveTab == "printers" ? "active" : "")"
                 @onclick='async () => await SetTab("printers")'>
             <i class="fa-solid fa-print"></i> Parc Machines
-        </button>
-        <button class="tab-btn @(ActiveTab == "comms" ? "active" : "")"
-                @onclick='async () => await SetTab("comms")'>
-            <i class="fa-solid fa-bullhorn"></i> Communication
         </button>
         <button class="tab-btn @(ActiveTab == "users" ? "active" : "")"
                 @onclick='async () => await SetTab("users")'>
@@ -92,70 +88,6 @@
             </div>
         }
 
-        @if (ActiveTab == "comms")
-        {
-            <div class="comms-grid">
-
-                <div class="section-card">
-                    <div class="card-header">
-                        <h3><i class="fa-solid fa-plus"></i> Publier une annonce</h3>
-                    </div>
-                    <div class="form-body">
-                        <div class="form-group">
-                            <label>Titre</label>
-                            <input class="form-input" @bind="NewAnnouncement.Title" placeholder="Ex: Fermeture exceptionnelle..." />
-                        </div>
-                        <div class="form-group">
-                            <label>Message</label>
-                            <textarea class="form-textarea" @bind="NewAnnouncement.Message" rows="3"></textarea>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Type</label>
-                                <select class="form-select" @bind="NewAnnouncement.Severity">
-                                    <option value="@AnnouncementSeverity.Info">Info (Bleu)</option>
-                                    <option value="@AnnouncementSeverity.Warning">Attention (Orange)</option>
-                                    <option value="@AnnouncementSeverity.Danger">Urgent (Rouge)</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Durée (Jours)</label>
-                                <input type="number" class="form-input" @bind="DurationDays" min="1" max="30" />
-                            </div>
-                        </div>
-                        <button class="btn btn-primary w-100" @onclick="PublishAnnouncement">
-                            Publier maintenant
-                        </button>
-                    </div>
-                </div>
-
-                <div class="section-card">
-                    <div class="card-header">
-                        <h3><i class="fa-solid fa-clock-rotate-left"></i> Annonces Actives</h3>
-                    </div>
-                    <ul class="active-list">
-                        @foreach (var ann in Announcements.Where(a => a.IsActive))
-                        {
-                            <li class="list-item">
-                                <div class="item-info">
-                                    <span class="badge-dot @ann.Severity.ToString().ToLower()"></span>
-                                    <strong>@ann.Title</strong>
-                                    <span class="text-muted">Fin : @ann.ExpirationDate.ToString("dd/MM")</span>
-                                </div>
-                                <button class="btn-icon danger" @onclick="() => DeleteAnnouncement(ann)">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
-                            </li>
-                        }
-                        @if (!Announcements.Any(a => a.IsActive))
-                        {
-                            <li class="empty-state">Aucune annonce en cours</li>
-                        }
-                    </ul>
-                </div>
-            </div>
-        }
-
         @if (ActiveTab == "users")
         {
             <div class="section-card">
@@ -186,23 +118,27 @@
                         <tbody>
                             @foreach (var m in AllMembers)
                             {
-                                var currentMember = AuthState.CurrentMember;
-                                var isSelf = currentMember != null && m.Id == currentMember.Id;
+                                var currentMembre = AuthState.CurrentMembre;
+                                var isSelf = currentMembre != null && m.Id == currentMembre.Id;
+                                var fullName = $"{m.FirstName} {m.LastName}";
+                                var initials = $"{m.FirstName[0]}{m.LastName[0]}".ToUpper();
+                                var isBoardMember = m.MembreRoles.Any(mr => mr.Role?.Name != "Eleve");
+                                var avatarColor = isBoardMember ? "var(--accent-magenta)" : "var(--primary-blue)";
 
                                 <tr>
                                     <td>
                                         <div style="display: flex; align-items: center; gap: 8px;">
-                                            <div style="width: 28px; height: 28px; border-radius: 50%; background: @(m.AvatarColor); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700;">
-                                                @m.Initials
+                                            <div style="width: 28px; height: 28px; border-radius: 50%; background: @avatarColor; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700;">
+                                                @initials
                                             </div>
-                                            <strong>@m.FullName</strong>
+                                            <strong>@fullName</strong>
                                         </div>
                                     </td>
                                     <td style="font-size: 0.82rem; color: var(--text-muted);">@m.Email</td>
-                                    <td>@m.ClassYearLabel</td>
+                                    <td>@m.ClassYear.GetDisplayName()</td>
                                     <td>
                                         <select class="form-select" style="min-width: 160px; font-size: 0.85rem;"
-                                                value="@(m.MemberRoles.FirstOrDefault()?.RoleId ?? 0)"
+                                                value="@(m.MembreRoles.FirstOrDefault()?.RoleId ?? 0)"
                                                 disabled="@isSelf"
                                                 @onchange="(e) => OnRoleChanged(m, e)">
                                             @foreach (var role in AllRoles)
@@ -255,16 +191,10 @@
 @code {
     private string ActiveTab = "printers";
 
-    // Données (Références vers les Mocks pour l'instant)
-    private List<Printer> Printers;
-    private List<Announcement> Announcements;
-
-    // Modèle pour le formulaire d'annonce
-    private Announcement NewAnnouncement = new();
-    private int DurationDays = 3;
+    private List<Printer> Printers = new();
 
     // Gestion des utilisateurs
-    private List<Member> AllMembers = new();
+    private List<Membre> AllMembers = new();
     private List<Role> AllRoles = new();
     private Dictionary<int, int> PendingRoleChanges = new();
     private Role? SelectedRoleForPreview;
@@ -273,7 +203,7 @@
     protected override async Task OnInitializedAsync()
     {
         HeaderService.SetTitle("Administration", "Configuration du parc et communication");
-        LoadMockData();
+        LoadMockPrinters();
         AllMembers = await MemberService.GetAllMembersAsync();
         AllRoles = await RoleService.GetAllRolesAsync();
     }
@@ -288,11 +218,11 @@
         }
     }
 
-    private void OnRoleChanged(Member member, ChangeEventArgs e)
+    private void OnRoleChanged(Membre member, ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out var roleId))
         {
-            var currentRoleId = member.MemberRoles.FirstOrDefault()?.RoleId ?? 0;
+            var currentRoleId = member.MembreRoles.FirstOrDefault()?.RoleId ?? 0;
             if (roleId != currentRoleId)
                 PendingRoleChanges[member.Id] = roleId;
             else
@@ -306,12 +236,12 @@
     {
         if (!PendingRoleChanges.TryGetValue(memberId, out var newRoleId)) return;
 
-        var success = await MemberService.UpdateMemberRoleAsync(memberId, newRoleId);
+        var success = await MemberService.UpdateMemberRolesAsync(memberId, [newRoleId]);
         if (success)
         {
             var member = AllMembers.FirstOrDefault(m => m.Id == memberId);
             var role = AllRoles.FirstOrDefault(r => r.Id == newRoleId);
-            UserSuccessMessage = $"Rôle de {member?.FullName} changé en {role?.DisplayName}";
+            UserSuccessMessage = $"Rôle de {member?.FirstName} {member?.LastName} changé en {role?.DisplayName}";
             PendingRoleChanges.Remove(memberId);
             AllMembers = await MemberService.GetAllMembersAsync();
         }
@@ -327,121 +257,16 @@
         {
             Printers.Remove(p);
         }
-    #endregion
 
-    #region Announcement
-        private void PublishAnnouncement()
+        private void LoadMockPrinters()
         {
-            if (string.IsNullOrWhiteSpace(NewAnnouncement.Title)) return;
-
-            NewAnnouncement.Id = Announcements.Count + 1;
-            NewAnnouncement.PublishDate = DateTime.Now;
-            NewAnnouncement.DisplayDuration = TimeSpan.FromDays(DurationDays);
-
-            Announcements.Add(NewAnnouncement);
-
-            NewAnnouncement = new Announcement();
-            DurationDays = 3;
-        }
-
-        private void DeleteAnnouncement(Announcement a)
-        {
-            Announcements.Remove(a);
+            Printers = new List<Printer>
+            {
+                new Printer { Id = 1, Name = "Bambu A1 - 01", Model = "A1", IpAddress = "192.168.1.50", AccessCode = "12345678" },
+                new Printer { Id = 2, Name = "Bambu A1 - 02", Model = "A1", IpAddress = "192.168.1.51", AccessCode = "87654321" },
+                new Printer { Id = 3, Name = "La X1 Carbon", Model = "X1C", IpAddress = "192.168.1.60", AccessCode = "ABCD1234" },
+                new Printer { Id = 4, Name = "Bambu A1 Mini", Model = "A1 Mini", IpAddress = "192.168.1.52", AccessCode = "MINI0001" },
+            };
         }
     #endregion
-    
-
-    private void LoadMockData()
-    {
-        Printers = new List<Printer>
-        {
-            new Printer {
-                Name = "Bambu A1 - 01",
-                Model = "A1",
-                Status = PrinterStatus.Printing,
-                Progress = 72,
-                CurrentFile = "IronMan_Helmet.gcode",
-                NozzleTemp = 215,
-                BedTemp = 60,
-                TimeRemainingMinutes = 45,
-                FilamentColor = "#d41a5f", // Magenta
-                FilamentType = "PLA Matte"
-            },
-            new Printer {
-                Name = "Bambu A1 - 02",
-                Model = "A1",
-                IpAddress = "192.168.1.51",
-                Status = PrinterStatus.Idle,
-                Progress = 0,
-                NozzleTemp = 25,
-                BedTemp = 22,
-                FilamentColor = "#0896b5", // Bleu
-                FilamentType = "PETG"
-            },
-            new Printer {
-                Name = "La X1 Carbon",
-                Model = "X1C",
-                IpAddress = "192.168.1.60",
-                Status = PrinterStatus.Printing,
-                Progress = 15,
-                CurrentFile = "Calibration_Flow.gcode",
-                NozzleTemp = 240,
-                BedTemp = 35,
-                TimeRemainingMinutes = 120,
-                FilamentColor = "#333333",
-                FilamentType = "PLA-CF"
-            },
-            new Printer {
-                Name = "Bambu A1 Mini",
-                Model = "A1 Mini",
-                Status = PrinterStatus.Error,
-                Progress = 45,
-                CurrentFile = "Echec.gcode",
-                FilamentColor = "#f18904", // Orange
-                FilamentType = "PLA"
-            }
-        };
-        Announcements = new List<Announcement>
-        {
-            new Announcement
-            {
-                Id = 1,
-                Title = "Fermeture exceptionnelle",
-                Message = "Le Fablab fermera ses portes plus tôt ce vendredi (17h00) pour l'inventaire trimestriel. Merci de libérer les établis.",
-                Severity = AnnouncementSeverity.Danger,
-                PublishDate = DateTime.Now.AddDays(-1),
-                DisplayDuration = TimeSpan.FromDays(3)
-            },
-
-            new Announcement
-            {
-                Id = 2,
-                Title = "Maintenance CNC",
-                Message = "La fraiseuse numérique est en cours de calibrage suite à un changement de broche. Indisponible jusqu'à nouvel ordre.",
-                Severity = AnnouncementSeverity.Warning,
-                PublishDate = DateTime.Now.AddHours(-4),
-                DisplayDuration = TimeSpan.FromHours(48)
-            },
-
-            new Announcement
-            {
-                Id = 3,
-                Title = "Arrivage de PLA",
-                Message = "Nous avons reçu les nouvelles bobines (PLA Mat & PETG) ! N'oubliez pas de peser vos impressions.",
-                Severity = AnnouncementSeverity.Info,
-                PublishDate = DateTime.Now.AddDays(-2),
-                DisplayDuration = TimeSpan.FromDays(7)
-            },
-
-            new Announcement
-            {
-                Id = 4,
-                Title = "Pizza Party de rentrée",
-                Message = "C'était sympa !",
-                Severity = AnnouncementSeverity.Info,
-                PublishDate = DateTime.Now.AddDays(-10),
-                DisplayDuration = TimeSpan.FromDays(1)
-            }
-        };
-    }
 }

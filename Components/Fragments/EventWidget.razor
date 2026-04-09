@@ -1,16 +1,16 @@
-﻿<div class="widget-card event-widget">
+<div class="widget-card event-widget">
     <div class="widget-title">
         <span><i class="fa-solid fa-calendar-star"></i> Événement à la une</span>
     </div>
 
     <div class="event-content">
-        <i class="fa-solid @Event.IconClass event-main-icon"></i>
+        <i class="fa-solid @Event.Icone event-main-icon"></i>
 
         <h4>@Event.Title</h4>
         <p class="event-desc">@Event.Description</p>
 
-        <div class="countdown-badge @Event.BadgeCssClass">
-            @Event.CountdownLabel
+        <div class="countdown-badge @BadgeCssClass">
+            @CountdownLabel
         </div>
 
         <div class="event-meta">
@@ -21,5 +21,15 @@
 </div>
 
 @code {
-    [Parameter] public required Event Event { get; set; }
+    [Parameter] public required Evenement Event { get; set; }
+
+    private int DaysRemaining => (Event.Date.Date - DateTime.Now.Date).Days;
+    private bool IsUpcoming => DaysRemaining >= 0;
+    private string CountdownLabel => DaysRemaining switch
+    {
+        0 => "Aujourd'hui !",
+        1 => "Demain",
+        _ => $"J-{DaysRemaining}"
+    };
+    private string BadgeCssClass => DaysRemaining <= 3 ? "badge-urgent" : "badge-normal";
 }

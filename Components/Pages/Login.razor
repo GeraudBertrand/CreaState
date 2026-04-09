@@ -97,8 +97,8 @@
             var member = await AuthService.LoginAsync(Email, Password);
             if (member != null)
             {
-                AuthState.Login(member);
-                if(member.IsBoardMember)
+                AuthState.LoginMembre(member);
+                if(member.MembreRoles.Any(mr => mr.Role?.Name != "Eleve"))
                 {
                     NavManager.NavigateTo("/private");
                 }

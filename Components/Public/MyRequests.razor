@@ -31,27 +31,23 @@
             <div class="requests-list">
                 @foreach (var request in Requests)
                 {
+                    var statusCss = GetStatusCssClass(request.Status);
+
                     <div class="request-card" @onclick="() => GoToDetail(request.Id)">
                         <div class="request-card-header">
-                            <span class="badge @request.StatusCssClass">@request.StatusLabel</span>
+                            <span class="badge @statusCss">@request.Status.GetDisplayName()</span>
                             <span class="request-date">@request.CreatedAt.ToString("dd/MM/yyyy")</span>
                         </div>
                         <h4 class="request-title">@request.Title</h4>
                         <div class="request-meta">
                             <span class="meta-item">
-                                <i class="fa-solid fa-cube"></i> @request.TypeLabel
+                                <i class="fa-solid fa-cube"></i> @request.Type.GetDisplayName()
                             </span>
                             <span class="meta-item">
-                                <i class="fa-solid fa-paperclip"></i> @request.Files.Count fichier(s)
+                                <i class="fa-solid fa-paperclip"></i> @request.Fichiers.Count fichier(s)
                             </span>
-                            @if (!string.IsNullOrEmpty(request.MaterialPreference))
-                            {
-                                <span class="meta-item">
-                                    <i class="fa-solid fa-palette"></i> @request.MaterialPreference
-                                </span>
-                            }
                         </div>
-                        @if (request.Files.Any(f => f.Status == FileReviewStatus.Refused || f.Status == FileReviewStatus.NeedsModification))
+                        @if (request.Fichiers.Any(f => f.ReviewStatus == FileReviewStatus.Refused || f.ReviewStatus == FileReviewStatus.NeedsModification))
                         {
                             <div class="request-alert">
                                 <i class="fa-solid fa-triangle-exclamation"></i> Des fichiers nécessitent votre attention
@@ -65,14 +61,14 @@
 </div>
 
 @code {
-    private List<Request> Requests = new();
+    private List<Requete> Requests = new();
 
     protected override async Task OnInitializedAsync()
     {
-        var member = AuthState.CurrentMember;
-        if (member != null)
+        var user = AuthState.CurrentUser;
+        if (user != null)
         {
-            Requests = await RequestService.GetRequestsForUserAsync(member.Id);
+            Requests = await RequestService.GetRequestsForUserAsync(user.Id);
         }
 
         #if DEBUG
@@ -82,46 +78,58 @@
 
     private void GoToDetail(int id) => NavManager.NavigateTo($"/public/my-requests/{id}");
 
+    private static string GetStatusCssClass(RequestStatus s) => s switch
+    {
+        RequestStatus.Submitted => "badge-info",
+        RequestStatus.UnderReview => "badge-warning",
+        RequestStatus.Approved => "badge-success",
+        RequestStatus.Rejected => "badge-danger",
+        RequestStatus.InProgress => "badge-primary",
+        RequestStatus.Completed => "badge-success",
+        RequestStatus.Cancelled => "badge-secondary",
+        _ => ""
+    };
+
     #if DEBUG
     private void LoadMockRequests()
     {
-        var mockUser = new Member { Id = 16, FirstName = "Nathan", LastName = "Simon", Email = "nathan.simon@edu.devinci.fr", MemberRoles = [new MemberRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
+        var mockUser = new Membre { Id = 16, FirstName = "Nathan", LastName = "Simon", Email = "nathan.simon@edu.devinci.fr", MembreRoles = [new MembreRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
 
-        Requests = new List<Request>
+        Requests = new List<Requete>
         {
             new()
             {
                 Id = 1, Type = RequestType.FDM, Title = "Support de téléphone personnalisé",
                 Description = "Support ajustable en PLA noir", Status = RequestStatus.Submitted,
-                MaterialPreference = "PLA Noir", RequestedByMemberId = 16, RequestedBy = mockUser,
+                DemandeurId = 16, Demandeur = mockUser,
                 CreatedAt = DateTime.UtcNow.AddDays(-2),
-                Files = new List<RequestFile>
+                Fichiers = new List<RequeteFichier>
                 {
-                    new() { Id = 1, OriginalFileName = "support_base.stl", FileSize = 245000, Status = FileReviewStatus.Accepted },
-                    new() { Id = 2, OriginalFileName = "support_bras.stl", FileSize = 180000, Status = FileReviewStatus.Refused, ManagerComment = "Épaisseur trop fine" },
-                    new() { Id = 3, OriginalFileName = "clip_cable.3mf", FileSize = 52000, Status = FileReviewStatus.Pending },
+                    new() { Id = 1, FileName = "support_base.stl", FileSize = 245000, ReviewStatus = FileReviewStatus.Accepted },
+                    new() { Id = 2, FileName = "support_bras.stl", FileSize = 180000, ReviewStatus = FileReviewStatus.Refused },
+                    new() { Id = 3, FileName = "clip_cable.3mf", FileSize = 52000, ReviewStatus = FileReviewStatus.Pending },
                 }
             },
             new()
             {
                 Id = 2, Type = RequestType.SLA, Title = "Figurine détaillée",
                 Description = "Figurine en résine haute précision", Status = RequestStatus.Approved,
-                MaterialPreference = "Résine Standard", RequestedByMemberId = 16, RequestedBy = mockUser,
+                DemandeurId = 16, Demandeur = mockUser,
                 CreatedAt = DateTime.UtcNow.AddDays(-5),
-                Files = new List<RequestFile>
+                Fichiers = new List<RequeteFichier>
                 {
-                    new() { Id = 4, OriginalFileName = "figurine_v3.stl", FileSize = 820000, Status = FileReviewStatus.Accepted },
+                    new() { Id = 4, FileName = "figurine_v3.stl", FileSize = 820000, ReviewStatus = FileReviewStatus.Accepted },
                 }
             },
             new()
             {
                 Id = 3, Type = RequestType.Laser, Title = "Plaque signalétique bureau",
                 Description = "Découpe laser sur bois 3mm", Status = RequestStatus.Completed,
-                MaterialPreference = "Bois MDF 3mm", RequestedByMemberId = 16, RequestedBy = mockUser,
-                CreatedAt = DateTime.UtcNow.AddDays(-15), CompletedAt = DateTime.UtcNow.AddDays(-12),
-                Files = new List<RequestFile>
+                DemandeurId = 16, Demandeur = mockUser,
+                CreatedAt = DateTime.UtcNow.AddDays(-15),
+                Fichiers = new List<RequeteFichier>
                 {
-                    new() { Id = 5, OriginalFileName = "plaque.dxf", FileSize = 34000, Status = FileReviewStatus.Accepted },
+                    new() { Id = 5, FileName = "plaque.dxf", FileSize = 34000, ReviewStatus = FileReviewStatus.Accepted },
                 }
             },
         };
