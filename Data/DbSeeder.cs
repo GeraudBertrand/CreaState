@@ -24,6 +24,7 @@ namespace CreaState.Data
             await SeedRolePermissionsAsync(context);
             await SeedPrintersAsync(context);
             await SeedAdminAsync(context, userManager);
+            await SeedEleveAsync(userManager);
 
             await context.SaveChangesAsync();
         }
@@ -173,6 +174,37 @@ namespace CreaState.Data
                 // Assign all bureau roles to admin
                 await userManager.AddToRoleAsync(admin, "President");
                 await userManager.AddToRoleAsync(admin, "Membre");
+            }
+        }
+
+        private static async Task SeedEleveAsync(UserManager<User> userManager)
+        {
+            // ============================================================
+            // !! ELEVE DE TEST : eleve@edu.devinci.fr / Password123!
+            // !! Acces partie publique uniquement
+            // ============================================================
+            const string eleveEmail = "eleve@edu.devinci.fr";
+            const string elevePassword = "Password123!";
+
+            if (await userManager.FindByEmailAsync(eleveEmail) != null)
+                return;
+
+            var eleve = new User
+            {
+                UserName = eleveEmail,
+                Email = eleveEmail,
+                EmailConfirmed = true, // Pre-confirmed for testing
+                FirstName = "Eleve",
+                LastName = "Test",
+                ClassYear = ClassYearEnum.A1,
+                UserType = UserType.Eleve,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await userManager.CreateAsync(eleve, elevePassword);
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(eleve, "Eleve");
             }
         }
     }
