@@ -55,14 +55,16 @@
                     <tbody>
                         @foreach (var req in RequestList)
                         {
+                            var statusCss = GetStatusCssClass(req.Status);
+
                             <tr>
                                 <td><strong>@req.Id</strong></td>
                                 <td>
-                                    <span class="badge @req.StatusCssClass">@req.StatusLabel</span>
+                                    <span class="badge @statusCss">@req.Status.GetDisplayName()</span>
                                 </td>
-                                <td>@req.TypeLabel</td>
+                                <td>@req.Type.GetDisplayName()</td>
                                 <td>@req.Title</td>
-                                <td>@(req.RequestedBy?.FullName ?? "—")</td>
+                                <td>@(req.Demandeur != null ? $"{req.Demandeur.FirstName} {req.Demandeur.LastName}" : "—")</td>
                                 <td>@req.CreatedAt.ToString("dd/MM/yyyy")</td>
                                 <td>
                                     <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewDetail(req.Id)">
@@ -107,11 +109,10 @@
     OnSubmit="HandleReject" />
 
 @code {
-    private List<Request> RequestList = new();
+    private List<Requete> RequestList = new();
     private string FilterStatus { get; set; } = "";
     private bool IsManager = false;
 
-    // Modal rejet
     private bool ShowReject = false;
     private int RejectingRequestId;
 
@@ -130,14 +131,14 @@
         if (Enum.TryParse<RequestStatus>(FilterStatus, out var parsed))
             filter = parsed;
 
-        var member = AuthState.CurrentMember;
+        var membre = AuthState.CurrentMembre;
         if (IsManager)
         {
             RequestList = await RequestService.GetAllRequestsAsync(filter);
         }
-        else if (member != null)
+        else if (membre != null)
         {
-            RequestList = await RequestService.GetRequestsForUserAsync(member.Id);
+            RequestList = await RequestService.GetRequestsForUserAsync(membre.Id);
             if (filter.HasValue)
                 RequestList = RequestList.Where(r => r.Status == filter.Value).ToList();
         }
@@ -150,34 +151,43 @@
     #if DEBUG
     private void LoadMockRequests()
     {
-        var mockUser = new Member { Id = 16, FirstName = "Nathan", LastName = "Simon", MemberRoles = [new MemberRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
-        var mockUser2 = new Member { Id = 17, FirstName = "Julie", LastName = "Michel", MemberRoles = [new MemberRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
+        var mockUser = new Membre { Id = 16, FirstName = "Nathan", LastName = "Simon", UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
+        var mockUser2 = new Membre { Id = 17, FirstName = "Julie", LastName = "Michel", UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
 
-        RequestList = new List<Request>
+        RequestList = new List<Requete>
         {
-            new() { Id = 1, Type = RequestType.FDM, Title = "Support de téléphone personnalisé", Description = "Impression d'un support ajustable.", Status = RequestStatus.Submitted, RequestedByMemberId = 16, RequestedBy = mockUser, CreatedAt = DateTime.UtcNow.AddDays(-2),
-                    Files = new List<RequestFile> { new() { Id = 1, OriginalFileName = "support_v3.stl", FileSize = 245000, Status = FileReviewStatus.Pending } } },
-            new() { Id = 2, Type = RequestType.FDM, Title = "Boîtier Arduino Nano", Description = "Boîtier de protection pour Arduino Nano.", Status = RequestStatus.Approved, RequestedByMemberId = 17, RequestedBy = mockUser2, CreatedAt = DateTime.UtcNow.AddDays(-5), ReviewedAt = DateTime.UtcNow.AddDays(-4),
-                    Files = new List<RequestFile> { new() { Id = 2, OriginalFileName = "boitier_nano.3mf", FileSize = 580000, Status = FileReviewStatus.Accepted } } },
-            new() { Id = 3, Type = RequestType.Laser, Title = "Gravure plaque signalétique", Description = "Plaque avec logo Créalab pour la porte.", Status = RequestStatus.InProgress, RequestedByMemberId = 16, RequestedBy = mockUser, CreatedAt = DateTime.UtcNow.AddDays(-7),
-                    Files = new List<RequestFile> { new() { Id = 3, OriginalFileName = "plaque_logo.dxf", FileSize = 120000, Status = FileReviewStatus.Accepted } } },
-            new() { Id = 4, Type = RequestType.SLA, Title = "Figurine détaillée", Description = "Impression résine haute résolution.", Status = RequestStatus.Completed, RequestedByMemberId = 17, RequestedBy = mockUser2, CreatedAt = DateTime.UtcNow.AddDays(-14), CompletedAt = DateTime.UtcNow.AddDays(-10),
-                    Files = new List<RequestFile> { new() { Id = 4, OriginalFileName = "figurine.stl", FileSize = 1200000, Status = FileReviewStatus.Accepted } } },
-            new() { Id = 5, Type = RequestType.FDM, Title = "Pièce trop volumineuse", Description = "Pièce de 50cm, hors gabarit.", Status = RequestStatus.Rejected, RequestedByMemberId = 16, RequestedBy = mockUser, CreatedAt = DateTime.UtcNow.AddDays(-3), RejectionReason = "Dimensions trop grandes pour nos imprimantes.",
-                    Files = new List<RequestFile> { new() { Id = 5, OriginalFileName = "grosse_piece.stl", FileSize = 3500000, Status = FileReviewStatus.Refused, ManagerComment = "Le fichier dépasse la taille maximale du plateau." } } },
+            new() { Id = 1, Type = RequestType.FDM, Title = "Support de téléphone personnalisé", Description = "Impression d'un support ajustable.", Status = RequestStatus.Submitted, DemandeurId = 16, Demandeur = mockUser, CreatedAt = DateTime.UtcNow.AddDays(-2),
+                    Fichiers = new List<RequeteFichier> { new() { Id = 1, FileName = "support_v3.stl", FileSize = 245000, ReviewStatus = FileReviewStatus.Pending } } },
+            new() { Id = 2, Type = RequestType.FDM, Title = "Boîtier Arduino Nano", Description = "Boîtier de protection pour Arduino Nano.", Status = RequestStatus.Approved, DemandeurId = 17, Demandeur = mockUser2, CreatedAt = DateTime.UtcNow.AddDays(-5),
+                    Fichiers = new List<RequeteFichier> { new() { Id = 2, FileName = "boitier_nano.3mf", FileSize = 580000, ReviewStatus = FileReviewStatus.Accepted } } },
+            new() { Id = 3, Type = RequestType.Laser, Title = "Gravure plaque signalétique", Description = "Plaque avec logo Créalab pour la porte.", Status = RequestStatus.InProgress, DemandeurId = 16, Demandeur = mockUser, CreatedAt = DateTime.UtcNow.AddDays(-7),
+                    Fichiers = new List<RequeteFichier> { new() { Id = 3, FileName = "plaque_logo.dxf", FileSize = 120000, ReviewStatus = FileReviewStatus.Accepted } } },
+            new() { Id = 4, Type = RequestType.SLA, Title = "Figurine détaillée", Description = "Impression résine haute résolution.", Status = RequestStatus.Completed, DemandeurId = 17, Demandeur = mockUser2, CreatedAt = DateTime.UtcNow.AddDays(-14),
+                    Fichiers = new List<RequeteFichier> { new() { Id = 4, FileName = "figurine.stl", FileSize = 1200000, ReviewStatus = FileReviewStatus.Accepted } } },
+            new() { Id = 5, Type = RequestType.FDM, Title = "Pièce trop volumineuse", Description = "Pièce de 50cm, hors gabarit.", Status = RequestStatus.Rejected, DemandeurId = 16, Demandeur = mockUser, CreatedAt = DateTime.UtcNow.AddDays(-3), RejectionReason = "Dimensions trop grandes pour nos imprimantes.",
+                    Fichiers = new List<RequeteFichier> { new() { Id = 5, FileName = "grosse_piece.stl", FileSize = 3500000, ReviewStatus = FileReviewStatus.Refused } } },
         };
     }
     #endif
 
-    private void ViewDetail(int id)
+    private static string GetStatusCssClass(RequestStatus s) => s switch
     {
-        NavManager.NavigateTo($"/private/requests/{id}");
-    }
+        RequestStatus.Submitted => "badge-info",
+        RequestStatus.UnderReview => "badge-warning",
+        RequestStatus.Approved => "badge-success",
+        RequestStatus.Rejected => "badge-danger",
+        RequestStatus.InProgress => "badge-primary",
+        RequestStatus.Completed => "badge-success",
+        RequestStatus.Cancelled => "badge-secondary",
+        _ => ""
+    };
+
+    private void ViewDetail(int id) => NavManager.NavigateTo($"/private/requests/{id}");
 
     private async Task ApproveRequest(int id)
     {
-        var member = AuthState.CurrentMember;
-        await RequestService.UpdateStatusAsync(id, RequestStatus.Approved, member?.Id);
+        var membre = AuthState.CurrentMembre;
+        await RequestService.UpdateStatusAsync(id, RequestStatus.Approved, membre?.Id);
         await LoadRequestList();
     }
 
@@ -189,8 +199,8 @@
 
     private async Task HandleReject(string reason)
     {
-        var member = AuthState.CurrentMember;
-        await RequestService.UpdateStatusAsync(RejectingRequestId, RequestStatus.Rejected, member?.Id, reason);
+        var membre = AuthState.CurrentMembre;
+        await RequestService.UpdateStatusAsync(RejectingRequestId, RequestStatus.Rejected, membre?.Id, reason);
         ShowReject = false;
         await LoadRequestList();
     }

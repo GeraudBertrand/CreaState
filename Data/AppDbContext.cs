@@ -1,190 +1,148 @@
 using CreaState.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace CreaState.Data
 {
-    public class AppDbContext : DbContext
+    public class AppDbContext : IdentityDbContext<User, Role, int, IdentityUserClaim<int>, AppUserRole, IdentityUserLogin<int>, IdentityRoleClaim<int>, IdentityUserToken<int>>
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        public DbSet<User> Users => Set<User>();
-        public DbSet<Member> Members => Set<Member>();
-        public DbSet<Role> Roles => Set<Role>();
+        public DbSet<Membre> Membres => Set<Membre>();
         public DbSet<Permission> Permissions => Set<Permission>();
         public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
         public DbSet<Printer> Printers => Set<Printer>();
-        public DbSet<PrintJob> PrintJobs => Set<PrintJob>();
-        public DbSet<Event> Events => Set<Event>();
+        public DbSet<Consommable> Consommables => Set<Consommable>();
         public DbSet<Formation> Formations => Set<Formation>();
-        public DbSet<Announcement> Announcements => Set<Announcement>();
-        public DbSet<Request> Requests => Set<Request>();
-        public DbSet<RequestFile> RequestFiles => Set<RequestFile>();
-        public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
-        public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
-        public DbSet<RequestComment> RequestComments => Set<RequestComment>();
-        public DbSet<MemberRole> MemberRoles => Set<MemberRole>();
+        public DbSet<Evenement> Evenements => Set<Evenement>();
+        public DbSet<Maintenance> Maintenances => Set<Maintenance>();
+        public DbSet<Requete> Requetes => Set<Requete>();
+        public DbSet<RequeteFichier> RequeteFichiers => Set<RequeteFichier>();
+        public DbSet<RequeteCommentaire> RequeteCommentaires => Set<RequeteCommentaire>();
+        public DbSet<PrintJob> PrintJobs => Set<PrintJob>();
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder builder)
         {
-            base.OnModelCreating(modelBuilder);
+            base.OnModelCreating(builder);
 
-            // TPH : User/Member dans une seule table avec discriminateur
-            modelBuilder.Entity<User>()
-                .HasDiscriminator<string>("UserType")
-                .HasValue<User>("User")
-                .HasValue<Member>("Member");
+            // === Renommer les tables Identity pour rester propre ===
+            builder.Entity<User>().ToTable("Users");
+            builder.Entity<Role>().ToTable("Roles");
+            builder.Entity<AppUserRole>().ToTable("UserRoles");
+            builder.Entity<IdentityUserClaim<int>>().ToTable("UserClaims");
+            builder.Entity<IdentityUserLogin<int>>().ToTable("UserLogins");
+            builder.Entity<IdentityUserToken<int>>().ToTable("UserTokens");
+            builder.Entity<IdentityRoleClaim<int>>().ToTable("RoleClaims");
 
-            // Index unique sur l'email
-            modelBuilder.Entity<User>()
-                .HasIndex(u => u.Email)
-                .IsUnique();
+            // === User / Membre : TPH avec discriminateur UserType ===
+            builder.Entity<User>()
+                .HasDiscriminator(u => u.UserType)
+                .HasValue<User>(UserType.Eleve)
+                .HasValue<Membre>(UserType.Membre);
 
-            // === Role & Permission ===
-            modelBuilder.Entity<Role>()
-                .HasIndex(r => r.Name)
-                .IsUnique();
+            // === AppUserRole : navigations bidirectionnelles ===
+            builder.Entity<AppUserRole>(b =>
+            {
+                b.HasOne(ur => ur.User)
+                    .WithMany(u => u.UserRoles)
+                    .HasForeignKey(ur => ur.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Permission>()
+                b.HasOne(ur => ur.Role)
+                    .WithMany(r => r.UserRoles)
+                    .HasForeignKey(ur => ur.RoleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // === Permission ===
+            builder.Entity<Permission>()
                 .HasIndex(p => p.Code)
                 .IsUnique();
 
-            modelBuilder.Entity<RolePermission>()
+            builder.Entity<RolePermission>()
                 .HasKey(rp => new { rp.RoleId, rp.PermissionId });
 
-            modelBuilder.Entity<RolePermission>()
+            builder.Entity<RolePermission>()
                 .HasOne(rp => rp.Role)
                 .WithMany(r => r.RolePermissions)
                 .HasForeignKey(rp => rp.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<RolePermission>()
+            builder.Entity<RolePermission>()
                 .HasOne(rp => rp.Permission)
                 .WithMany(p => p.RolePermissions)
                 .HasForeignKey(rp => rp.PermissionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Member <-> Role (many-to-many via MemberRole)
-            modelBuilder.Entity<MemberRole>()
-                .HasKey(mr => new { mr.MemberId, mr.RoleId });
-
-            modelBuilder.Entity<MemberRole>()
-                .HasOne(mr => mr.Member)
-                .WithMany(m => m.MemberRoles)
-                .HasForeignKey(mr => mr.MemberId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<MemberRole>()
-                .HasOne(mr => mr.Role)
-                .WithMany(r => r.MemberRoles)
-                .HasForeignKey(mr => mr.RoleId)
+            // === Formation -> Membre (Instructeur) ===
+            builder.Entity<Formation>()
+                .HasOne(f => f.Instructeur)
+                .WithMany()
+                .HasForeignKey(f => f.InstructeurId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Printer : clé string
-            modelBuilder.Entity<Printer>()
-                .HasKey(p => p.Id);
+            // === Maintenance -> Printer, Membre ===
+            builder.Entity<Maintenance>()
+                .HasOne(m => m.Printer)
+                .WithMany(p => p.Maintenances)
+                .HasForeignKey(m => m.PrinterId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // PrintJob relations
-            modelBuilder.Entity<PrintJob>()
+            builder.Entity<Maintenance>()
+                .HasOne(m => m.Worker)
+                .WithMany()
+                .HasForeignKey(m => m.WorkerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // === Requete -> User (Demandeur), Membre (Assigné) ===
+            builder.Entity<Requete>()
+                .HasOne(r => r.Demandeur)
+                .WithMany()
+                .HasForeignKey(r => r.DemandeurId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Requete>()
+                .HasOne(r => r.Assigne)
+                .WithMany()
+                .HasForeignKey(r => r.AssigneId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Requete>().HasIndex(r => r.Status);
+            builder.Entity<Requete>().HasIndex(r => r.DemandeurId);
+
+            // === RequeteFichier -> Requete ===
+            builder.Entity<RequeteFichier>()
+                .HasOne(rf => rf.Requete)
+                .WithMany(r => r.Fichiers)
+                .HasForeignKey(rf => rf.RequeteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // === RequeteCommentaire -> Requete, User ===
+            builder.Entity<RequeteCommentaire>()
+                .HasOne(rc => rc.Requete)
+                .WithMany(r => r.Commentaires)
+                .HasForeignKey(rc => rc.RequeteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<RequeteCommentaire>()
+                .HasOne(rc => rc.Auteur)
+                .WithMany()
+                .HasForeignKey(rc => rc.AuteurId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // === PrintJob -> Printer, Requete ===
+            builder.Entity<PrintJob>()
                 .HasOne(pj => pj.Printer)
                 .WithMany(p => p.PrintJobs)
                 .HasForeignKey(pj => pj.PrinterId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<PrintJob>()
-                .HasOne(pj => pj.RequestedBy)
-                .WithMany()
-                .HasForeignKey(pj => pj.RequestedByUserId)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<PrintJob>()
-                .HasOne(pj => pj.Request)
+            builder.Entity<PrintJob>()
+                .HasOne(pj => pj.Requete)
                 .WithMany(r => r.PrintJobs)
-                .HasForeignKey(pj => pj.RequestId)
+                .HasForeignKey(pj => pj.RequeteId)
                 .OnDelete(DeleteBehavior.SetNull);
-
-            // Request relations
-            modelBuilder.Entity<Request>()
-                .HasOne(r => r.RequestedBy)
-                .WithMany()
-                .HasForeignKey(r => r.RequestedByMemberId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Request>()
-                .HasOne(r => r.AssignedTo)
-                .WithMany()
-                .HasForeignKey(r => r.AssignedToMemberId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Request>()
-                .HasOne(r => r.Printer)
-                .WithMany()
-                .HasForeignKey(r => r.PrinterId)
-                .OnDelete(DeleteBehavior.SetNull);
-
-            modelBuilder.Entity<Request>()
-                .HasIndex(r => r.Status);
-
-            modelBuilder.Entity<Request>()
-                .HasIndex(r => r.RequestedByMemberId);
-
-            // RequestFile relations
-            modelBuilder.Entity<RequestFile>()
-                .HasOne(rf => rf.Request)
-                .WithMany(r => r.Files)
-                .HasForeignKey(rf => rf.RequestId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            // RequestComment relations
-            modelBuilder.Entity<RequestComment>()
-                .HasOne(rc => rc.Request)
-                .WithMany(r => r.Comments)
-                .HasForeignKey(rc => rc.RequestId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            modelBuilder.Entity<RequestComment>()
-                .HasOne(rc => rc.Author)
-                .WithMany()
-                .HasForeignKey(rc => rc.AuthorMemberId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // MaintenanceRecord relations
-            modelBuilder.Entity<MaintenanceRecord>()
-                .HasOne(m => m.Printer)
-                .WithMany(p => p.MaintenanceRecords)
-                .HasForeignKey(m => m.PrinterId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<MaintenanceRecord>()
-                .HasOne(m => m.PerformedBy)
-                .WithMany()
-                .HasForeignKey(m => m.PerformedByMemberId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<MaintenanceRecord>()
-                .HasOne(m => m.ResolvedBy)
-                .WithMany()
-                .HasForeignKey(m => m.ResolvedByMemberId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // Event, Formation, Announcement -> CreatedBy
-            modelBuilder.Entity<Event>()
-                .HasOne(e => e.CreatedBy)
-                .WithMany()
-                .HasForeignKey(e => e.CreatedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Formation>()
-                .HasOne(f => f.CreatedBy)
-                .WithMany()
-                .HasForeignKey(f => f.CreatedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<Announcement>()
-                .HasOne(a => a.CreatedBy)
-                .WithMany()
-                .HasForeignKey(a => a.CreatedByUserId)
-                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

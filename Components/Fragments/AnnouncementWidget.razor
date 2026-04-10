@@ -1,17 +1,23 @@
-﻿<div class="widget-card announcement @announcement.CssClass animate-pop">
-    <div class="widget-title">
-        <span>
-            <i class="fa-solid @announcement.IconClass"></i> @announcement.Title
-        </span>
+@* AnnouncementWidget — Announcement model has been removed.
+   This component is now a placeholder and should be replaced with a proper notification system. *@
+
+@if (!string.IsNullOrEmpty(Title))
+{
+    <div class="widget-card announcement @CssClass animate-pop">
+        <div class="widget-title">
+            <span>
+                <i class="fa-solid @IconClass"></i> @Title
+            </span>
+        </div>
+        <div class="announcement-content">
+            <p>@Message</p>
+        </div>
     </div>
-    <div class="announcement-content">
-        <p>@announcement.Message</p>
-        <small class="publish-date">
-            Publié le @announcement.PublishDate.ToString("dd/MM")
-        </small>
-    </div>
-</div>
+}
 
 @code {
-    [Parameter] public required Announcement announcement{ get; set; }
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Message { get; set; } = "";
+    [Parameter] public string CssClass { get; set; } = "info";
+    [Parameter] public string IconClass { get; set; } = "fa-circle-info";
 }

@@ -1,0 +1,187 @@
+@inject MemberService MemberService
+@inject RoleService RoleService
+@inject AuthStateProvider AuthState
+
+<div class="section-card">
+    <div class="card-header">
+        <h3><i class="fa-solid fa-users-gear"></i> Matrice des rôles</h3>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">@AllMembers.Count membre(s) · @AllRoles.Count rôle(s)</span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(SuccessMessage))
+    {
+        <div class="toast-success">
+            <i class="fa-solid fa-check-circle"></i> @SuccessMessage
+        </div>
+    }
+
+    <div class="matrix-wrapper">
+        <table class="role-matrix">
+            <thead>
+                <tr>
+                    <th class="member-col">Membre</th>
+                    @foreach (var role in AllRoles)
+                    {
+                        <th class="role-col" title="@role.Description">
+                            <span class="role-header">@role.DisplayName</span>
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in AllMembers)
+                {
+                    var isSelf = CurrentMembreId == m.Id;
+                    var memberRoleIds = m.UserRoles.Select(ur => ur.RoleId).ToHashSet();
+
+                    <tr class="@(isSelf ? "row-self" : "")">
+                        <td class="member-col">
+                            <div class="member-cell">
+                                <div class="avatar-sm" style="background: @(memberRoleIds.Any(id => !IsDefaultRole(id)) ? "var(--accent-magenta)" : "var(--primary-blue)")">
+                                    @($"{m.FirstName[0]}{m.LastName[0]}".ToUpper())
+                                </div>
+                                <div class="member-info">
+                                    <strong>@m.FirstName @m.LastName</strong>
+                                    <small>@m.Email</small>
+                                </div>
+                                @if (isSelf)
+                                {
+                                    <span class="badge-you"><i class="fa-solid fa-lock"></i> Vous</span>
+                                }
+                            </div>
+                        </td>
+                        @foreach (var role in AllRoles)
+                        {
+                            var isChecked = memberRoleIds.Contains(role.Id);
+                            var memberId = m.Id;
+                            var roleId = role.Id;
+
+                            <td class="role-col">
+                                <label class="checkbox-cell @(isSelf ? "disabled" : "")">
+                                    <input type="checkbox"
+                                           checked="@isChecked"
+                                           disabled="@isSelf"
+                                           @onchange="(e) => OnRoleToggled(memberId, roleId, (bool)(e.Value ?? false))" />
+                                    <span class="checkmark @(isChecked ? "checked" : "")"></span>
+                                </label>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (PendingChanges.Any())
+    {
+        <div class="pending-bar">
+            <span><i class="fa-solid fa-triangle-exclamation"></i> @PendingChanges.Count modification(s) non sauvegardée(s)</span>
+            <div class="pending-actions">
+                <button class="btn btn-sm btn-secondary" @onclick="CancelChanges">Annuler</button>
+                <button class="btn btn-sm btn-primary" @onclick="SaveAllChanges">
+                    <i class="fa-solid fa-floppy-disk"></i> Sauvegarder
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Membre> AllMembers = new();
+    private List<Role> AllRoles = new();
+    private int? CurrentMembreId;
+    private string? SuccessMessage;
+
+    // Stocke l'état modifié des rôles par membre : memberId → Set<roleId>
+    private Dictionary<int, HashSet<int>> PendingChanges = new();
+    // Snapshot initial pour pouvoir annuler
+    private Dictionary<int, HashSet<int>> OriginalRoles = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        CurrentMembreId = AuthState.CurrentMembre?.Id;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        AllMembers = await MemberService.GetAllMembersAsync();
+        AllRoles = await RoleService.GetAllRolesAsync();
+
+        // Stocker un snapshot des rôles originaux
+        OriginalRoles = AllMembers.ToDictionary(
+            m => m.Id,
+            m => m.UserRoles.Select(ur => ur.RoleId).ToHashSet()
+        );
+        PendingChanges.Clear();
+    }
+
+    private bool IsDefaultRole(int roleId)
+        => AllRoles.FirstOrDefault(r => r.Id == roleId)?.IsDefault ?? false;
+
+    private void OnRoleToggled(int memberId, int roleId, bool isChecked)
+    {
+        // Si pas encore dans pending, créer depuis l'original
+        if (!PendingChanges.ContainsKey(memberId))
+        {
+            PendingChanges[memberId] = new HashSet<int>(OriginalRoles.GetValueOrDefault(memberId, []));
+        }
+
+        if (isChecked)
+            PendingChanges[memberId].Add(roleId);
+        else
+            PendingChanges[memberId].Remove(roleId);
+
+        // Si revenu à l'état original, retirer du pending
+        var original = OriginalRoles.GetValueOrDefault(memberId, []);
+        if (PendingChanges[memberId].SetEquals(original))
+            PendingChanges.Remove(memberId);
+
+        // Mettre à jour le modèle local pour refléter visuellement
+        var member = AllMembers.FirstOrDefault(m => m.Id == memberId);
+        if (member != null)
+        {
+            member.UserRoles.Clear();
+            var currentRoles = PendingChanges.ContainsKey(memberId)
+                ? PendingChanges[memberId]
+                : original;
+            foreach (var rid in currentRoles)
+                member.UserRoles.Add(new AppUserRole { UserId = memberId, RoleId = rid, Role = AllRoles.First(r => r.Id == rid) });
+        }
+    }
+
+    private async Task SaveAllChanges()
+    {
+        var names = new List<string>();
+
+        foreach (var (memberId, roleIds) in PendingChanges)
+        {
+            var success = await MemberService.UpdateMemberRolesAsync(memberId, roleIds.ToList());
+            if (success)
+            {
+                var m = AllMembers.FirstOrDefault(m => m.Id == memberId);
+                if (m != null) names.Add($"{m.FirstName} {m.LastName}");
+            }
+        }
+
+        if (names.Any())
+        {
+            SuccessMessage = $"Rôles mis à jour pour : {string.Join(", ", names)}";
+        }
+
+        await LoadData();
+    }
+
+    private async Task CancelChanges()
+    {
+        PendingChanges.Clear();
+        await LoadData();
+    }
+
+    public async Task RefreshAsync()
+    {
+        SuccessMessage = null;
+        await LoadData();
+        StateHasChanged();
+    }
+}

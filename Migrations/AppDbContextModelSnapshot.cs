@@ -22,7 +22,22 @@ namespace CreaState.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
-            modelBuilder.Entity("CreaState.Models.Announcement", b =>
+            modelBuilder.Entity("CreaState.Models.AppUserRole", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("UserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("CreaState.Models.Consommable", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -30,44 +45,39 @@ namespace CreaState.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CreatedByUserId")
+                    b.Property<string>("CouleurHex")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("CouleurNom")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("Quantite")
                         .HasColumnType("int");
 
-                    b.Property<TimeSpan>("DisplayDuration")
-                        .HasColumnType("time(6)");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("PublishDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("Severity")
+                    b.Property<int>("Seuil")
                         .HasColumnType("int");
 
-                    b.Property<string>("Title")
+                    b.Property<string>("Type")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedByUserId");
-
-                    b.ToTable("Announcements");
+                    b.ToTable("Consommables");
                 });
 
-            modelBuilder.Entity("CreaState.Models.Event", b =>
+            modelBuilder.Entity("CreaState.Models.Evenement", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime(6)");
@@ -76,7 +86,7 @@ namespace CreaState.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("IconClass")
+                    b.Property<string>("Icone")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
@@ -93,9 +103,7 @@ namespace CreaState.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedByUserId");
-
-                    b.ToTable("Events");
+                    b.ToTable("Evenements");
                 });
 
             modelBuilder.Entity("CreaState.Models.Formation", b =>
@@ -105,12 +113,6 @@ namespace CreaState.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("CurrentParticipants")
-                        .HasColumnType("int");
 
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
@@ -122,10 +124,8 @@ namespace CreaState.Migrations
                     b.Property<TimeSpan>("Duration")
                         .HasColumnType("time(6)");
 
-                    b.Property<string>("Instructor")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
+                    b.Property<int>("InstructeurId")
+                        .HasColumnType("int");
 
                     b.Property<int>("MaxParticipants")
                         .HasColumnType("int");
@@ -133,19 +133,19 @@ namespace CreaState.Migrations
                     b.Property<TimeOnly>("StartTime")
                         .HasColumnType("time(6)");
 
-                    b.Property<string>("Title")
+                    b.Property<string>("Titre")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedByUserId");
+                    b.HasIndex("InstructeurId");
 
                     b.ToTable("Formations");
                 });
 
-            modelBuilder.Entity("CreaState.Models.InventoryItem", b =>
+            modelBuilder.Entity("CreaState.Models.Maintenance", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -153,115 +153,29 @@ namespace CreaState.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Brand")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int>("Category")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Color")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<double>("InitialQuantity")
-                        .HasColumnType("double");
-
-                    b.Property<DateTime>("LastUpdated")
+                    b.Property<DateTime>("Date")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<double>("LowStockThreshold")
-                        .HasColumnType("double");
-
-                    b.Property<string>("MaterialType")
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("longtext");
-
-                    b.Property<double>("QuantityRemaining")
-                        .HasColumnType("double");
-
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("varchar(10)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("InventoryItems");
-                });
-
-            modelBuilder.Entity("CreaState.Models.MaintenanceRecord", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<bool>("IsBreakdownReport")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsResolved")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<DateTime?>("NextScheduledAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<DateTime>("PerformedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int>("PerformedByMemberId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PrinterId")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<int?>("ResolvedByMemberId")
+                    b.Property<int>("PrinterId")
                         .HasColumnType("int");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.Property<int>("WorkerId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("PerformedByMemberId");
+                    b.HasKey("Id");
 
                     b.HasIndex("PrinterId");
 
-                    b.HasIndex("ResolvedByMemberId");
+                    b.HasIndex("WorkerId");
 
-                    b.ToTable("MaintenanceRecords");
-                });
-
-            modelBuilder.Entity("CreaState.Models.MemberRole", b =>
-                {
-                    b.Property<int>("MemberId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("MemberId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("MemberRoles");
+                    b.ToTable("Maintenances");
                 });
 
             modelBuilder.Entity("CreaState.Models.Permission", b =>
@@ -318,14 +232,10 @@ namespace CreaState.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<string>("PrinterId")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<int?>("RequestId")
+                    b.Property<int>("PrinterId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("RequestedByUserId")
+                    b.Property<int?>("RequeteId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("StartTime")
@@ -338,33 +248,31 @@ namespace CreaState.Migrations
 
                     b.HasIndex("PrinterId");
 
-                    b.HasIndex("RequestId");
-
-                    b.HasIndex("RequestedByUserId");
+                    b.HasIndex("RequeteId");
 
                     b.ToTable("PrintJobs");
                 });
 
             modelBuilder.Entity("CreaState.Models.Printer", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("varchar(255)");
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AccessCode")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<DateTime>("AddedDate")
-                        .HasColumnType("datetime(6)");
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("IpAddress")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Model")
                         .IsRequired()
@@ -386,7 +294,7 @@ namespace CreaState.Migrations
                     b.ToTable("Printers");
                 });
 
-            modelBuilder.Entity("CreaState.Models.Request", b =>
+            modelBuilder.Entity("CreaState.Models.Requete", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -394,37 +302,21 @@ namespace CreaState.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("AssignedToMemberId")
+                    b.Property<int?>("AssigneId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<int>("DemandeurId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<string>("MaterialPreference")
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<bool>("NotificationSent")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("PrinterId")
-                        .HasColumnType("varchar(255)");
-
                     b.Property<string>("RejectionReason")
                         .HasColumnType("longtext");
-
-                    b.Property<int>("RequestedByMemberId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("datetime(6)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -437,20 +329,21 @@ namespace CreaState.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("AssignedToMemberId");
+                    b.HasIndex("AssigneId");
 
-                    b.HasIndex("PrinterId");
-
-                    b.HasIndex("RequestedByMemberId");
+                    b.HasIndex("DemandeurId");
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Requests");
+                    b.ToTable("Requetes");
                 });
 
-            modelBuilder.Entity("CreaState.Models.RequestComment", b =>
+            modelBuilder.Entity("CreaState.Models.RequeteCommentaire", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -458,36 +351,41 @@ namespace CreaState.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AuthorMemberId")
+                    b.Property<int>("AuteurId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Message")
+                    b.Property<string>("Contenu")
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("varchar(2000)");
 
-                    b.Property<int>("RequestId")
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("RequeteId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AuthorMemberId");
+                    b.HasIndex("AuteurId");
 
-                    b.HasIndex("RequestId");
+                    b.HasIndex("RequeteId");
 
-                    b.ToTable("RequestComments");
+                    b.ToTable("RequeteCommentaires");
                 });
 
-            modelBuilder.Entity("CreaState.Models.RequestFile", b =>
+            modelBuilder.Entity("CreaState.Models.RequeteFichier", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -497,19 +395,10 @@ namespace CreaState.Migrations
                     b.Property<long>("FileSize")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("ManagerComment")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
-                    b.Property<string>("OriginalFileName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<int>("RequestId")
+                    b.Property<int>("RequeteId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Status")
+                    b.Property<int>("ReviewStatus")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("UploadedAt")
@@ -517,9 +406,9 @@ namespace CreaState.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RequestId");
+                    b.HasIndex("RequeteId");
 
-                    b.ToTable("RequestFiles");
+                    b.ToTable("RequeteFichiers");
                 });
 
             modelBuilder.Entity("CreaState.Models.Role", b =>
@@ -529,6 +418,10 @@ namespace CreaState.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Description")
                         .HasMaxLength(200)
@@ -543,16 +436,20 @@ namespace CreaState.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("NormalizedName")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
+                    b.HasIndex("NormalizedName")
+                        .IsUnique()
+                        .HasDatabaseName("RoleNameIndex");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("CreaState.Models.RolePermission", b =>
@@ -578,13 +475,25 @@ namespace CreaState.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ClassYear")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("longtext");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)");
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -599,32 +508,149 @@ namespace CreaState.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("longtext");
 
-                    b.Property<string>("UserType")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("varchar(8)");
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<int>("UserType")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
 
-                    b.ToTable("Users");
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex");
 
-                    b.HasDiscriminator<string>("UserType").HasValue("User");
+                    b.ToTable("Users", (string)null);
+
+                    b.HasDiscriminator<int>("UserType").HasValue(0);
 
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("CreaState.Models.Member", b =>
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("RoleClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ClaimType")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ClaimValue")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserClaims", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
+                {
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("ProviderKey")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("ProviderDisplayName")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("LoginProvider", "ProviderKey");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserLogins", (string)null);
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LoginProvider")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.ToTable("UserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("CreaState.Models.Membre", b =>
                 {
                     b.HasBaseType("CreaState.Models.User");
-
-                    b.Property<int>("ClassYear")
-                        .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("tinyint(1)");
@@ -632,85 +658,56 @@ namespace CreaState.Migrations
                     b.Property<DateTime>("JoinDate")
                         .HasColumnType("datetime(6)");
 
-                    b.HasDiscriminator().HasValue("Member");
+                    b.HasDiscriminator().HasValue(1);
                 });
 
-            modelBuilder.Entity("CreaState.Models.Announcement", b =>
+            modelBuilder.Entity("CreaState.Models.AppUserRole", b =>
                 {
-                    b.HasOne("CreaState.Models.Member", "CreatedBy")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CreatedBy");
-                });
-
-            modelBuilder.Entity("CreaState.Models.Event", b =>
-                {
-                    b.HasOne("CreaState.Models.Member", "CreatedBy")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CreatedBy");
-                });
-
-            modelBuilder.Entity("CreaState.Models.Formation", b =>
-                {
-                    b.HasOne("CreaState.Models.Member", "CreatedBy")
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CreatedBy");
-                });
-
-            modelBuilder.Entity("CreaState.Models.MaintenanceRecord", b =>
-                {
-                    b.HasOne("CreaState.Models.Member", "PerformedBy")
-                        .WithMany()
-                        .HasForeignKey("PerformedByMemberId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CreaState.Models.Printer", "Printer")
-                        .WithMany("MaintenanceRecords")
-                        .HasForeignKey("PrinterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CreaState.Models.Member", "ResolvedBy")
-                        .WithMany()
-                        .HasForeignKey("ResolvedByMemberId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("PerformedBy");
-
-                    b.Navigation("Printer");
-
-                    b.Navigation("ResolvedBy");
-                });
-
-            modelBuilder.Entity("CreaState.Models.MemberRole", b =>
-                {
-                    b.HasOne("CreaState.Models.Member", "Member")
-                        .WithMany("MemberRoles")
-                        .HasForeignKey("MemberId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("CreaState.Models.Role", "Role")
-                        .WithMany("MemberRoles")
+                        .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Member");
+                    b.HasOne("CreaState.Models.User", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("CreaState.Models.Formation", b =>
+                {
+                    b.HasOne("CreaState.Models.Membre", "Instructeur")
+                        .WithMany()
+                        .HasForeignKey("InstructeurId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Instructeur");
+                });
+
+            modelBuilder.Entity("CreaState.Models.Maintenance", b =>
+                {
+                    b.HasOne("CreaState.Models.Printer", "Printer")
+                        .WithMany("Maintenances")
+                        .HasForeignKey("PrinterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CreaState.Models.Membre", "Worker")
+                        .WithMany()
+                        .HasForeignKey("WorkerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Printer");
+
+                    b.Navigation("Worker");
                 });
 
             modelBuilder.Entity("CreaState.Models.PrintJob", b =>
@@ -721,76 +718,62 @@ namespace CreaState.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CreaState.Models.Request", "Request")
+                    b.HasOne("CreaState.Models.Requete", "Requete")
                         .WithMany("PrintJobs")
-                        .HasForeignKey("RequestId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("CreaState.Models.Member", "RequestedBy")
-                        .WithMany()
-                        .HasForeignKey("RequestedByUserId")
+                        .HasForeignKey("RequeteId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Printer");
 
-                    b.Navigation("Request");
-
-                    b.Navigation("RequestedBy");
+                    b.Navigation("Requete");
                 });
 
-            modelBuilder.Entity("CreaState.Models.Request", b =>
+            modelBuilder.Entity("CreaState.Models.Requete", b =>
                 {
-                    b.HasOne("CreaState.Models.Member", "AssignedTo")
+                    b.HasOne("CreaState.Models.Membre", "Assigne")
                         .WithMany()
-                        .HasForeignKey("AssignedToMemberId")
+                        .HasForeignKey("AssigneId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("CreaState.Models.Printer", "Printer")
+                    b.HasOne("CreaState.Models.User", "Demandeur")
                         .WithMany()
-                        .HasForeignKey("PrinterId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("CreaState.Models.Member", "RequestedBy")
-                        .WithMany()
-                        .HasForeignKey("RequestedByMemberId")
+                        .HasForeignKey("DemandeurId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("AssignedTo");
+                    b.Navigation("Assigne");
 
-                    b.Navigation("Printer");
-
-                    b.Navigation("RequestedBy");
+                    b.Navigation("Demandeur");
                 });
 
-            modelBuilder.Entity("CreaState.Models.RequestComment", b =>
+            modelBuilder.Entity("CreaState.Models.RequeteCommentaire", b =>
                 {
-                    b.HasOne("CreaState.Models.Member", "Author")
+                    b.HasOne("CreaState.Models.User", "Auteur")
                         .WithMany()
-                        .HasForeignKey("AuthorMemberId")
+                        .HasForeignKey("AuteurId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CreaState.Models.Request", "Request")
-                        .WithMany("Comments")
-                        .HasForeignKey("RequestId")
+                    b.HasOne("CreaState.Models.Requete", "Requete")
+                        .WithMany("Commentaires")
+                        .HasForeignKey("RequeteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Author");
+                    b.Navigation("Auteur");
 
-                    b.Navigation("Request");
+                    b.Navigation("Requete");
                 });
 
-            modelBuilder.Entity("CreaState.Models.RequestFile", b =>
+            modelBuilder.Entity("CreaState.Models.RequeteFichier", b =>
                 {
-                    b.HasOne("CreaState.Models.Request", "Request")
-                        .WithMany("Files")
-                        .HasForeignKey("RequestId")
+                    b.HasOne("CreaState.Models.Requete", "Requete")
+                        .WithMany("Fichiers")
+                        .HasForeignKey("RequeteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Request");
+                    b.Navigation("Requete");
                 });
 
             modelBuilder.Entity("CreaState.Models.RolePermission", b =>
@@ -812,6 +795,42 @@ namespace CreaState.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
+                {
+                    b.HasOne("CreaState.Models.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<int>", b =>
+                {
+                    b.HasOne("CreaState.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<int>", b =>
+                {
+                    b.HasOne("CreaState.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<int>", b =>
+                {
+                    b.HasOne("CreaState.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("CreaState.Models.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
@@ -819,30 +838,30 @@ namespace CreaState.Migrations
 
             modelBuilder.Entity("CreaState.Models.Printer", b =>
                 {
-                    b.Navigation("MaintenanceRecords");
+                    b.Navigation("Maintenances");
 
                     b.Navigation("PrintJobs");
                 });
 
-            modelBuilder.Entity("CreaState.Models.Request", b =>
+            modelBuilder.Entity("CreaState.Models.Requete", b =>
                 {
-                    b.Navigation("Comments");
+                    b.Navigation("Commentaires");
 
-                    b.Navigation("Files");
+                    b.Navigation("Fichiers");
 
                     b.Navigation("PrintJobs");
                 });
 
             modelBuilder.Entity("CreaState.Models.Role", b =>
                 {
-                    b.Navigation("MemberRoles");
-
                     b.Navigation("RolePermissions");
+
+                    b.Navigation("UserRoles");
                 });
 
-            modelBuilder.Entity("CreaState.Models.Member", b =>
+            modelBuilder.Entity("CreaState.Models.User", b =>
                 {
-                    b.Navigation("MemberRoles");
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,224 +1,138 @@
 using CreaState.Data;
 using CreaState.Models;
+using CreaState.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace CreaState.Services
 {
     public class RequestService
     {
+        private readonly IRequeteRepository _requeteRepo;
         private readonly AppDbContext _db;
         private const string UploadsDir = "wwwroot/uploads/requests";
 
-        public RequestService(AppDbContext db)
+        public RequestService(IRequeteRepository requeteRepo, AppDbContext db)
         {
+            _requeteRepo = requeteRepo;
             _db = db;
         }
 
-        /// <summary>
-        /// Crée une requête avec plusieurs fichiers.
-        /// </summary>
-        public async Task<Request> CreateRequestAsync(Request request, List<(Stream Stream, string FileName, long Size)>? files = null)
+        public async Task<Requete> CreateRequestAsync(Requete requete, List<(Stream Stream, string FileName, long Size)>? files = null)
         {
-            request.CreatedAt = DateTime.UtcNow;
-            request.Status = RequestStatus.Submitted;
+            requete.CreatedAt = DateTime.UtcNow;
+            requete.Status = RequestStatus.Submitted;
 
-            _db.Requests.Add(request);
-            await _db.SaveChangesAsync();
+            await _requeteRepo.AddAsync(requete);
 
             if (files != null)
             {
                 foreach (var file in files)
-                {
-                    await SaveFileAsync(request.Id, file.Stream, file.FileName, file.Size);
-                }
+                    await SaveFileAsync(requete.Id, file.Stream, file.FileName, file.Size);
             }
 
-            return request;
+            return requete;
         }
 
-        /// <summary>
-        /// Ajoute un fichier à une requête existante.
-        /// </summary>
-        public async Task<RequestFile> AddFileAsync(int requestId, Stream fileStream, string fileName, long size)
-        {
-            return await SaveFileAsync(requestId, fileStream, fileName, size);
-        }
+        public async Task<RequeteFichier> AddFileAsync(int requeteId, Stream fileStream, string fileName, long size)
+            => await SaveFileAsync(requeteId, fileStream, fileName, size);
 
-        /// <summary>
-        /// Remplace un fichier existant par un nouveau.
-        /// </summary>
         public async Task<bool> ReplaceFileAsync(int fileId, Stream newStream, string newFileName, long newSize)
         {
-            var file = await _db.RequestFiles.FindAsync(fileId);
+            var file = await _db.RequeteFichiers.FindAsync(fileId);
             if (file == null) return false;
 
-            // Supprimer l'ancien fichier physique
             DeletePhysicalFile(file.FilePath);
 
-            // Sauvegarder le nouveau
             var safeFileName = $"{Guid.NewGuid()}_{Path.GetFileName(newFileName)}";
             Directory.CreateDirectory(UploadsDir);
             var filePath = Path.Combine(UploadsDir, safeFileName);
 
             using (var fs = new FileStream(filePath, FileMode.Create))
-            {
                 await newStream.CopyToAsync(fs);
-            }
 
             file.FilePath = $"/uploads/requests/{safeFileName}";
-            file.OriginalFileName = newFileName;
+            file.FileName = newFileName;
             file.FileSize = newSize;
             file.UploadedAt = DateTime.UtcNow;
-            file.Status = FileReviewStatus.Pending;
-            file.ManagerComment = null;
-
-            // Reset notification flag sur la requête
-            var request = await _db.Requests.FindAsync(file.RequestId);
-            if (request != null) request.NotificationSent = false;
+            file.ReviewStatus = FileReviewStatus.Pending;
 
             await _db.SaveChangesAsync();
             return true;
         }
 
-        /// <summary>
-        /// Supprime un fichier (disque + BDD).
-        /// </summary>
         public async Task<bool> DeleteFileAsync(int fileId)
         {
-            var file = await _db.RequestFiles.FindAsync(fileId);
+            var file = await _db.RequeteFichiers.FindAsync(fileId);
             if (file == null) return false;
 
             DeletePhysicalFile(file.FilePath);
-            _db.RequestFiles.Remove(file);
+            _db.RequeteFichiers.Remove(file);
             await _db.SaveChangesAsync();
             return true;
         }
 
-        /// <summary>
-        /// Review un fichier (accepter/refuser/demander modification).
-        /// </summary>
         public async Task<bool> ReviewFileAsync(int fileId, FileReviewStatus status, string? comment = null)
         {
-            var file = await _db.RequestFiles.FindAsync(fileId);
+            var file = await _db.RequeteFichiers.FindAsync(fileId);
             if (file == null) return false;
 
-            file.Status = status;
-            file.ManagerComment = comment;
-
-            // Reset notification flag
-            var request = await _db.Requests.FindAsync(file.RequestId);
-            if (request != null) request.NotificationSent = false;
-
+            file.ReviewStatus = status;
             await _db.SaveChangesAsync();
             return true;
         }
 
-        /// <summary>
-        /// Marque la notification comme envoyée.
-        /// </summary>
-        public async Task MarkNotificationSentAsync(int requestId)
-        {
-            var request = await _db.Requests.FindAsync(requestId);
-            if (request != null)
-            {
-                request.NotificationSent = true;
-                await _db.SaveChangesAsync();
-            }
-        }
+        public async Task<List<Requete>> GetRequestsForUserAsync(int userId)
+            => await _requeteRepo.GetByDemandeurAsync(userId);
 
-        public async Task<List<Request>> GetRequestsForUserAsync(int memberId)
+        public async Task<List<Requete>> GetAllRequestsAsync(RequestStatus? filterStatus = null)
         {
-            return await _db.Requests
-                .Include(r => r.RequestedBy)
-                .Include(r => r.AssignedTo)
-                .Include(r => r.Printer)
-                .Include(r => r.Files)
-                .Where(r => r.RequestedByMemberId == memberId)
-                .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync();
-        }
-
-        public async Task<List<Request>> GetAllRequestsAsync(RequestStatus? filterStatus = null)
-        {
-            var query = _db.Requests
-                .Include(r => r.RequestedBy)
-                .Include(r => r.AssignedTo)
-                .Include(r => r.Printer)
-                .Include(r => r.Files)
-                .AsQueryable();
-
             if (filterStatus.HasValue)
-                query = query.Where(r => r.Status == filterStatus.Value);
-
-            return await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
+                return await _requeteRepo.GetByStatusAsync(filterStatus.Value);
+            return await _requeteRepo.GetAllWithDetailsAsync();
         }
 
-        public async Task<Request?> GetRequestByIdAsync(int id)
-        {
-            return await _db.Requests
-                .Include(r => r.RequestedBy)
-                .Include(r => r.AssignedTo)
-                .Include(r => r.Printer)
-                .Include(r => r.Files)
-                .Include(r => r.Comments).ThenInclude(c => c.Author)
-                .FirstOrDefaultAsync(r => r.Id == id);
-        }
+        public async Task<Requete?> GetRequestByIdAsync(int id)
+            => await _requeteRepo.GetWithDetailsAsync(id);
 
-        /// <summary>
-        /// Ajoute un commentaire à une demande.
-        /// </summary>
-        public async Task<RequestComment> AddCommentAsync(int requestId, int memberId, string message)
+        public async Task<RequeteCommentaire> AddCommentAsync(int requeteId, int auteurId, string contenu)
         {
-            var comment = new RequestComment
+            var comment = new RequeteCommentaire
             {
-                RequestId = requestId,
-                AuthorMemberId = memberId,
-                Message = message,
-                CreatedAt = DateTime.UtcNow
+                RequeteId = requeteId,
+                AuteurId = auteurId,
+                Contenu = contenu,
+                Date = DateTime.UtcNow
             };
 
-            _db.RequestComments.Add(comment);
+            _db.RequeteCommentaires.Add(comment);
             await _db.SaveChangesAsync();
             return comment;
         }
 
-        public async Task<bool> UpdateStatusAsync(int requestId, RequestStatus newStatus, int? reviewerId = null, string? reason = null)
+        public async Task<bool> UpdateStatusAsync(int requeteId, RequestStatus newStatus, int? reviewerId = null, string? reason = null)
         {
-            var request = await _db.Requests.FindAsync(requestId);
-            if (request == null) return false;
+            var requete = await _requeteRepo.GetByIdAsync(requeteId);
+            if (requete == null) return false;
 
-            request.Status = newStatus;
+            requete.Status = newStatus;
+            requete.UpdatedAt = DateTime.UtcNow;
 
             if (newStatus == RequestStatus.UnderReview || newStatus == RequestStatus.Approved || newStatus == RequestStatus.Rejected)
             {
-                request.ReviewedAt = DateTime.UtcNow;
                 if (reviewerId.HasValue)
-                    request.AssignedToMemberId = reviewerId;
+                    requete.AssigneId = reviewerId;
             }
 
             if (newStatus == RequestStatus.Rejected && !string.IsNullOrEmpty(reason))
-                request.RejectionReason = reason;
+                requete.RejectionReason = reason;
 
-            if (newStatus == RequestStatus.Completed)
-                request.CompletedAt = DateTime.UtcNow;
-
-            await _db.SaveChangesAsync();
-            return true;
-        }
-
-        public async Task<bool> AssignMachineAsync(int requestId, string printerId)
-        {
-            var request = await _db.Requests.FindAsync(requestId);
-            if (request == null) return false;
-
-            request.PrinterId = printerId;
-            await _db.SaveChangesAsync();
+            await _requeteRepo.UpdateAsync(requete);
             return true;
         }
 
         // --- Private helpers ---
 
-        private async Task<RequestFile> SaveFileAsync(int requestId, Stream stream, string fileName, long size)
+        private async Task<RequeteFichier> SaveFileAsync(int requeteId, Stream stream, string fileName, long size)
         {
             Directory.CreateDirectory(UploadsDir);
 
@@ -226,23 +140,21 @@ namespace CreaState.Services
             var filePath = Path.Combine(UploadsDir, safeFileName);
 
             using (var fs = new FileStream(filePath, FileMode.Create))
-            {
                 await stream.CopyToAsync(fs);
-            }
 
-            var requestFile = new RequestFile
+            var fichier = new RequeteFichier
             {
-                RequestId = requestId,
+                RequeteId = requeteId,
                 FilePath = $"/uploads/requests/{safeFileName}",
-                OriginalFileName = fileName,
+                FileName = fileName,
                 FileSize = size,
                 UploadedAt = DateTime.UtcNow,
-                Status = FileReviewStatus.Pending
+                ReviewStatus = FileReviewStatus.Pending
             };
 
-            _db.RequestFiles.Add(requestFile);
+            _db.RequeteFichiers.Add(fichier);
             await _db.SaveChangesAsync();
-            return requestFile;
+            return fichier;
         }
 
         private static void DeletePhysicalFile(string webPath)

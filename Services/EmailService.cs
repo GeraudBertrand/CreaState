@@ -13,12 +13,9 @@ namespace CreaState.Services
             _config = config;
         }
 
-        /// <summary>
-        /// Envoie un email récapitulatif des décisions sur les fichiers d'une requête.
-        /// </summary>
-        public async Task SendRequestReviewNotificationAsync(Request request)
+        public async Task SendRequestReviewNotificationAsync(Requete requete)
         {
-            if (request.RequestedBy == null || string.IsNullOrEmpty(request.RequestedBy.Email))
+            if (requete.Demandeur == null || string.IsNullOrEmpty(requete.Demandeur.Email))
                 return;
 
             var smtp = _config.GetSection("Smtp");
@@ -31,13 +28,13 @@ namespace CreaState.Services
 
             if (string.IsNullOrEmpty(host)) return;
 
+            var demandeur = requete.Demandeur;
             var message = new MimeMessage();
             message.From.Add(new MailboxAddress(fromName, fromEmail));
-            message.To.Add(new MailboxAddress(request.RequestedBy.FullName, request.RequestedBy.Email));
-            message.Subject = $"[Créalab] Retour sur votre demande #{request.Id} — {request.Title}";
+            message.To.Add(new MailboxAddress($"{demandeur.FirstName} {demandeur.LastName}", demandeur.Email));
+            message.Subject = $"[Créalab] Retour sur votre demande #{requete.Id} — {requete.Title}";
 
-            // Construire le corps HTML
-            var body = BuildReviewEmailBody(request);
+            var body = BuildReviewEmailBody(requete);
             message.Body = new TextPart("html") { Text = body };
 
             using var client = new SmtpClient();
@@ -50,12 +47,12 @@ namespace CreaState.Services
             await client.DisconnectAsync(true);
         }
 
-        private static string BuildReviewEmailBody(Request request)
+        private static string BuildReviewEmailBody(Requete requete)
         {
             var rows = "";
-            foreach (var file in request.Files)
+            foreach (var file in requete.Fichiers)
             {
-                var statusColor = file.Status switch
+                var statusColor = file.ReviewStatus switch
                 {
                     FileReviewStatus.Accepted => "#2ecc71",
                     FileReviewStatus.Refused => "#e74c3c",
@@ -63,24 +60,19 @@ namespace CreaState.Services
                     _ => "#95a5a6"
                 };
 
-                var statusIcon = file.Status switch
+                var statusIcon = file.ReviewStatus switch
                 {
-                    FileReviewStatus.Accepted => "✅",
-                    FileReviewStatus.Refused => "❌",
-                    FileReviewStatus.NeedsModification => "✏️",
-                    _ => "⏳"
+                    FileReviewStatus.Accepted => "OK",
+                    FileReviewStatus.Refused => "X",
+                    FileReviewStatus.NeedsModification => "~",
+                    _ => "?"
                 };
-
-                var comment = !string.IsNullOrEmpty(file.ManagerComment)
-                    ? $"<br/><small style=\"color:#666;\">{file.ManagerComment}</small>"
-                    : "";
 
                 rows += $@"
                 <tr>
-                    <td style=""padding:8px 12px;border-bottom:1px solid #eee;"">{file.OriginalFileName}</td>
+                    <td style=""padding:8px 12px;border-bottom:1px solid #eee;"">{file.FileName}</td>
                     <td style=""padding:8px 12px;border-bottom:1px solid #eee;text-align:center;"">
-                        <span style=""color:{statusColor};font-weight:bold;"">{statusIcon} {file.StatusLabel}</span>
-                        {comment}
+                        <span style=""color:{statusColor};font-weight:bold;"">{statusIcon} {file.ReviewStatus.GetDisplayName()}</span>
                     </td>
                 </tr>";
             }
@@ -91,9 +83,8 @@ namespace CreaState.Services
                     <h2 style=""margin:0;"">Créalab — Retour sur votre demande</h2>
                 </div>
                 <div style=""background:white;padding:20px;border:1px solid #e1e8ed;border-top:none;border-radius:0 0 8px 8px;"">
-                    <p>Bonjour <strong>{request.RequestedBy?.FirstName}</strong>,</p>
-                    <p>L'équipe technique a examiné les fichiers de votre demande <strong>#{request.Id} — {request.Title}</strong>.</p>
-
+                    <p>Bonjour <strong>{requete.Demandeur?.FirstName}</strong>,</p>
+                    <p>L'équipe technique a examiné les fichiers de votre demande <strong>#{requete.Id} — {requete.Title}</strong>.</p>
                     <table style=""width:100%;border-collapse:collapse;margin:16px 0;"">
                         <thead>
                             <tr style=""background:#f8f9fa;"">
@@ -103,8 +94,7 @@ namespace CreaState.Services
                         </thead>
                         <tbody>{rows}</tbody>
                     </table>
-
-                    <p>Connectez-vous sur la plateforme pour voir les détails et, si nécessaire, remplacer les fichiers concernés.</p>
+                    <p>Connectez-vous sur la plateforme pour voir les détails.</p>
                     <p style=""color:#95a5a6;font-size:0.85rem;"">— L'équipe Créalab</p>
                 </div>
             </div>";

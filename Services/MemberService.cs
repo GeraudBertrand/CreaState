@@ -1,104 +1,57 @@
 using CreaState.Data;
 using CreaState.Models;
+using CreaState.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace CreaState.Services
 {
     public class MemberService
     {
+        private readonly IMembreRepository _membreRepo;
         private readonly AppDbContext _db;
 
-        public MemberService(AppDbContext db)
+        public MemberService(IMembreRepository membreRepo, AppDbContext db)
         {
+            _membreRepo = membreRepo;
             _db = db;
         }
 
-        /// <summary>
-        /// Récupère un membre par son ID avec ses rôles et permissions.
-        /// </summary>
-        public async Task<Member?> GetMemberByIdAsync(int id)
-        {
-            return await _db.Members
-                .Include(m => m.MemberRoles)
-                    .ThenInclude(mr => mr.Role)
-                    .ThenInclude(r => r!.RolePermissions)
-                    .ThenInclude(rp => rp.Permission)
-                .FirstOrDefaultAsync(m => m.Id == id && m.IsActive);
-        }
+        public async Task<Membre?> GetMemberByIdAsync(int id)
+            => await _membreRepo.GetWithRolesAsync(id);
 
-        /// <summary>
-        /// Récupère tous les membres actifs avec leurs rôles (pour la page admin).
-        /// </summary>
-        public async Task<List<Member>> GetAllMembersAsync()
-        {
-            return await _db.Members
-                .Include(m => m.MemberRoles)
-                    .ThenInclude(mr => mr.Role)
-                .Where(m => m.IsActive)
-                .OrderBy(m => m.LastName)
-                .ThenBy(m => m.FirstName)
-                .ToListAsync();
-        }
+        public async Task<List<Membre>> GetAllMembersAsync()
+            => await _membreRepo.GetAllWithRolesAsync();
 
-        /// <summary>
-        /// Récupère les membres actifs hors Élèves (pour l'annuaire).
-        /// </summary>
-        public async Task<List<Member>> GetActiveMembersAsync()
-        {
-            return await _db.Members
-                .Include(m => m.MemberRoles)
-                    .ThenInclude(mr => mr.Role)
-                .Where(m => m.IsActive && m.MemberRoles.Any(mr => mr.Role!.Name != "Eleve"))
-                .OrderBy(m => m.LastName)
-                .ThenBy(m => m.FirstName)
-                .ToListAsync();
-        }
+        public async Task<List<Membre>> GetActiveMembersAsync()
+            => await _membreRepo.GetAllActiveAsync();
 
-        /// <summary>
-        /// Met à jour les rôles d'un membre (remplace tous les rôles existants).
-        /// </summary>
-        public async Task<bool> UpdateMemberRolesAsync(int memberId, List<int> roleIds)
+        public async Task<bool> UpdateMemberRolesAsync(int membreId, List<int> roleIds)
         {
-            var member = await _db.Members
-                .Include(m => m.MemberRoles)
-                .FirstOrDefaultAsync(m => m.Id == memberId);
-            if (member == null) return false;
+            var membre = await _db.Membres
+                .Include(m => m.UserRoles)
+                .FirstOrDefaultAsync(m => m.Id == membreId);
+            if (membre == null) return false;
 
-            // Vérifier que tous les rôles existent
             var validRoles = await _db.Roles.Where(r => roleIds.Contains(r.Id)).ToListAsync();
             if (validRoles.Count != roleIds.Count) return false;
 
-            // Supprimer les anciens rôles
-            _db.MemberRoles.RemoveRange(member.MemberRoles);
+            // Remove existing roles via the UserRoles join table
+            var existingUserRoles = _db.Set<AppUserRole>().Where(ur => ur.UserId == membreId);
+            _db.Set<AppUserRole>().RemoveRange(existingUserRoles);
 
-            // Ajouter les nouveaux
             foreach (var roleId in roleIds)
-            {
-                _db.MemberRoles.Add(new MemberRole { MemberId = memberId, RoleId = roleId });
-            }
+                _db.Set<AppUserRole>().Add(new AppUserRole { UserId = membreId, RoleId = roleId });
 
             await _db.SaveChangesAsync();
             return true;
         }
 
-        /// <summary>
-        /// Change le rôle principal d'un membre (ancien comportement, remplace tous les rôles par un seul).
-        /// </summary>
-        public async Task<bool> UpdateMemberRoleAsync(int memberId, int roleId)
+        public async Task<bool> RemoveMemberAsync(int membreId)
         {
-            return await UpdateMemberRolesAsync(memberId, new List<int> { roleId });
-        }
+            var membre = await _membreRepo.GetByIdAsync(membreId);
+            if (membre == null) return false;
 
-        /// <summary>
-        /// Supprime un membre de la base de données.
-        /// </summary>
-        public async Task<bool> RemoveMemberAsync(int memberId)
-        {
-            var member = await _db.Members.FindAsync(memberId);
-            if (member == null) return false;
-
-            _db.Members.Remove(member);
-            await _db.SaveChangesAsync();
+            await _membreRepo.DeleteAsync(membre);
             return true;
         }
     }

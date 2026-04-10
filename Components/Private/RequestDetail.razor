@@ -2,12 +2,6 @@
 @layout PrivateLayout
 @attribute [Authorize(Policy = "PrivateAccess")]
 
-@inject PageHeaderService HeaderService
-@inject RequestService RequestService
-@inject AuthStateProvider AuthState
-@inject NavigationManager NavManager
-@inject PrinterService PrinterService
-@inject EmailService EmailService
 
 <PageTitle>Demande #@Id - Créalab</PageTitle>
 
@@ -33,17 +27,13 @@
                 <div class="card-clean" style="padding: 1.5rem;">
                     <div class="d-flex align-items-center gap-2 mb-3">
                         <h4 style="margin: 0;">@Request.Title</h4>
-                        <span class="badge @Request.StatusCssClass">@Request.StatusLabel</span>
+                        <span class="badge @GetStatusCssClass(Request.Status)">@Request.Status.GetDisplayName()</span>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-6">
                             <small style="color: var(--text-muted);">Type</small>
-                            <div><strong>@Request.TypeLabel</strong></div>
-                        </div>
-                        <div class="col-6">
-                            <small style="color: var(--text-muted);">Matériau souhaité</small>
-                            <div><strong>@(Request.MaterialPreference ?? "Non spécifié")</strong></div>
+                            <div><strong>@Request.Type.GetDisplayName()</strong></div>
                         </div>
                     </div>
 
@@ -66,7 +56,7 @@
                 <!-- Section fichiers -->
                 <div class="card-clean mt-3" style="padding: 1.5rem;">
                     <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h6 style="margin: 0;"><i class="fa-solid fa-paperclip"></i> Fichiers (@Request.Files.Count)</h6>
+                        <h6 style="margin: 0;"><i class="fa-solid fa-paperclip"></i> Fichiers (@Request.Fichiers.Count)</h6>
                         @if (CanEditFiles)
                         {
                             <label class="btn btn-sm btn-outline-primary" style="cursor: pointer; margin: 0;">
@@ -76,72 +66,72 @@
                         }
                     </div>
 
-                    @if (!Request.Files.Any())
+                    @if (!Request.Fichiers.Any())
                     {
                         <p style="color: var(--text-muted); text-align: center; padding: 1rem;">Aucun fichier joint.</p>
                     }
                     else
                     {
                         <div class="files-list">
-                            @foreach (var file in Request.Files.OrderBy(f => f.UploadedAt))
+                            @foreach (var file in Request.Fichiers.OrderBy(f => f.UploadedAt))
                             {
+                                var fileCss = GetFileStatusCss(file.ReviewStatus);
+                                var sizeLabel = GetFileSizeLabel(file.FileSize);
+
                                 <div class="file-row">
                                     <div class="file-info">
                                         <i class="fa-solid fa-file-code" style="color: var(--primary-blue);"></i>
                                         <div class="file-details">
-                                            <a href="@file.FilePath" target="_blank" class="file-name">@file.OriginalFileName</a>
-                                            <small>@file.FileSizeLabel — @file.UploadedAt.ToString("dd/MM HH:mm")</small>
+                                            <a href="@file.FilePath" target="_blank" class="file-name">@file.FileName</a>
+                                            <small>@sizeLabel — @file.UploadedAt.ToString("dd/MM HH:mm")</small>
                                         </div>
-                                        <span class="file-status-badge @file.StatusCssClass">@file.StatusLabel</span>
+                                        <span class="file-status-badge @fileCss">@file.ReviewStatus.GetDisplayName()</span>
                                     </div>
 
                                     <div class="file-actions">
                                         @if (IsManager)
                                         {
-                                            <button class="btn-file-action accept @(file.Status == FileReviewStatus.Accepted ? "active" : "")"
-                                                    title="Valider ce fichier pour impression" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Accepted)">
+                                            var acceptCss = file.ReviewStatus == FileReviewStatus.Accepted ? "active" : "";
+                                            var refuseCss = file.ReviewStatus == FileReviewStatus.Refused ? "active" : "";
+                                            var modifyCss = file.ReviewStatus == FileReviewStatus.NeedsModification ? "active" : "";
+
+                                            <button class="btn-file-action accept @acceptCss"
+                                                    title="Valider ce fichier" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Accepted)">
                                                 <i class="fa-solid fa-check"></i> Accepter
                                             </button>
-                                            <button class="btn-file-action refuse @(file.Status == FileReviewStatus.Refused ? "active" : "")"
-                                                    title="Refuser ce fichier définitivement" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Refused)">
+                                            <button class="btn-file-action refuse @refuseCss"
+                                                    title="Refuser ce fichier" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Refused)">
                                                 <i class="fa-solid fa-xmark"></i> Refuser
                                             </button>
-                                            <button class="btn-file-action modify @(file.Status == FileReviewStatus.NeedsModification ? "active" : "")"
-                                                    title="Demander une modification au demandeur" @onclick="() => OpenCommentModal(file.Id)">
+                                            <button class="btn-file-action modify @modifyCss"
+                                                    title="Demander une modification" @onclick="() => OpenCommentModal(file.Id)">
                                                 <i class="fa-solid fa-pen"></i> À modifier
                                             </button>
                                         }
 
-                                        @if (CanEditFiles && (file.Status == FileReviewStatus.Refused || file.Status == FileReviewStatus.NeedsModification || file.Status == FileReviewStatus.Pending))
+                                        @if (CanEditFiles && (file.ReviewStatus == FileReviewStatus.Refused || file.ReviewStatus == FileReviewStatus.NeedsModification || file.ReviewStatus == FileReviewStatus.Pending))
                                         {
-                                            <label class="btn-file-action replace" title="Envoyer une nouvelle version de ce fichier" style="cursor: pointer;">
+                                            <label class="btn-file-action replace" title="Envoyer une nouvelle version" style="cursor: pointer;">
                                                 <i class="fa-solid fa-arrows-rotate"></i> Remplacer
                                                 <InputFile OnChange="(e) => HandleReplaceFile(e, file.Id)" accept=".stl,.3mf,.dxf,.obj" style="display: none;" />
                                             </label>
-                                            <button class="btn-file-action delete" title="Retirer ce fichier de la demande" @onclick="() => DeleteFile(file.Id)">
+                                            <button class="btn-file-action delete" title="Retirer ce fichier" @onclick="() => DeleteFile(file.Id)">
                                                 <i class="fa-solid fa-trash"></i> Supprimer
                                             </button>
                                         }
                                     </div>
-
-                                    @if (!string.IsNullOrEmpty(file.ManagerComment))
-                                    {
-                                        <div class="file-comment">
-                                            <i class="fa-solid fa-comment"></i> @file.ManagerComment
-                                        </div>
-                                    }
                                 </div>
                             }
                         </div>
                     }
 
-                    @if (IsManager && Request.Files.Any(f => f.Status != FileReviewStatus.Pending))
+                    @if (IsManager && Request.Fichiers.Any(f => f.ReviewStatus != FileReviewStatus.Pending))
                     {
                         <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e1e8ed;">
-                            <button class="btn btn-sm @(Request.NotificationSent ? "btn-outline-secondary" : "btn-primary")"
+                            <button class="btn btn-sm btn-primary"
                                     @onclick="SendNotification" disabled="@IsSendingNotification">
-                                <i class="fa-solid @(Request.NotificationSent ? "fa-check-circle" : "fa-bell")"></i>
-                                @(Request.NotificationSent ? "Notification envoyée" : "Prévenir le demandeur")
+                                <i class="fa-solid fa-bell"></i>
+                                Prévenir le demandeur
                             </button>
                             @if (!string.IsNullOrEmpty(NotificationMessage))
                             {
@@ -157,21 +147,30 @@
                     <div class="card-clean mt-3 comments-section" style="padding: 1.5rem;">
                         <h6 style="margin: 0 0 1rem;"><i class="fa-solid fa-comments"></i> Discussion</h6>
 
-                        @if (Request.Comments.Any())
+                        @if (Request.Commentaires.Any())
                         {
                             <div class="comments-list">
-                                @foreach (var comment in Request.Comments.OrderBy(c => c.CreatedAt))
+                                @foreach (var comment in Request.Commentaires.OrderBy(c => c.Date))
                                 {
+                                    var auteurInitials = comment.Auteur != null
+                                        ? $"{comment.Auteur.FirstName[0]}{comment.Auteur.LastName[0]}".ToUpper()
+                                        : "??";
+                                    var auteurName = comment.Auteur != null
+                                        ? $"{comment.Auteur.FirstName} {comment.Auteur.LastName}"
+                                        : "Inconnu";
+
+                                    var avatarBg = comment.AuteurId == Request.DemandeurId ? "var(--primary-blue)" : "var(--accent-magenta)";
+
                                     <div class="comment-item">
-                                        <div class="comment-avatar" style="background: @(comment.AuthorMemberId == Request.RequestedByMemberId ? "var(--primary-blue)" : "var(--accent-magenta)")">
-                                            @(comment.Author?.Initials ?? "??")
+                                        <div class="comment-avatar" style="background: @avatarBg">
+                                            @auteurInitials
                                         </div>
                                         <div class="comment-body">
                                             <div class="comment-meta">
-                                                <strong>@(comment.Author?.FullName ?? "Inconnu")</strong>
-                                                <span class="comment-date">@comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                                <strong>@auteurName</strong>
+                                                <span class="comment-date">@comment.Date.ToString("dd/MM/yyyy HH:mm")</span>
                                             </div>
-                                            <p class="comment-text">@comment.Message</p>
+                                            <p class="comment-text">@comment.Contenu</p>
                                         </div>
                                     </div>
                                 }
@@ -199,7 +198,7 @@
 
                     <div class="mb-2">
                         <small style="color: var(--text-muted);">Demandeur</small>
-                        <div><strong>@(Request.RequestedBy?.FullName ?? "—")</strong></div>
+                        <div><strong>@(Request.Demandeur != null ? $"{Request.Demandeur.FirstName} {Request.Demandeur.LastName}" : "—")</strong></div>
                     </div>
 
                     <div class="mb-2">
@@ -207,35 +206,19 @@
                         <div>@Request.CreatedAt.ToString("dd/MM/yyyy à HH:mm")</div>
                     </div>
 
-                    @if (Request.ReviewedAt.HasValue)
+                    @if (Request.UpdatedAt.HasValue)
                     {
                         <div class="mb-2">
-                            <small style="color: var(--text-muted);">Examinée le</small>
-                            <div>@Request.ReviewedAt.Value.ToString("dd/MM/yyyy à HH:mm")</div>
+                            <small style="color: var(--text-muted);">Mise à jour le</small>
+                            <div>@Request.UpdatedAt.Value.ToString("dd/MM/yyyy à HH:mm")</div>
                         </div>
                     }
 
-                    @if (Request.AssignedTo != null)
+                    @if (Request.Assigne != null)
                     {
                         <div class="mb-2">
                             <small style="color: var(--text-muted);">Assignée à</small>
-                            <div><strong>@Request.AssignedTo.FullName</strong></div>
-                        </div>
-                    }
-
-                    @if (Request.Printer != null)
-                    {
-                        <div class="mb-2">
-                            <small style="color: var(--text-muted);">Machine</small>
-                            <div><strong>@Request.Printer.Name</strong></div>
-                        </div>
-                    }
-
-                    @if (Request.CompletedAt.HasValue)
-                    {
-                        <div class="mb-2">
-                            <small style="color: var(--text-muted);">Terminée le</small>
-                            <div>@Request.CompletedAt.Value.ToString("dd/MM/yyyy à HH:mm")</div>
+                            <div><strong>@($"{Request.Assigne.FirstName} {Request.Assigne.LastName}")</strong></div>
                         </div>
                     }
                 </div>
@@ -244,20 +227,6 @@
                 {
                     <div class="card-clean mt-3" style="padding: 1.5rem;">
                         <h6>Actions</h6>
-
-                        @if (Request.Status == RequestStatus.Approved || Request.Status == RequestStatus.InProgress)
-                        {
-                            <div class="form-group mb-2">
-                                <label>Assigner une machine</label>
-                                <select class="form-control" @bind="SelectedPrinterId" @bind:after="AssignMachine">
-                                    <option value="">— Aucune —</option>
-                                    @foreach (var printer in Printers)
-                                    {
-                                        <option value="@printer.Id">@printer.Name</option>
-                                    }
-                                </select>
-                            </div>
-                        }
 
                         @if (Request.Status == RequestStatus.Submitted)
                         {
@@ -318,197 +287,4 @@
             </div>
         </div>
     </div>
-}
-
-@code {
-    [Parameter] public int Id { get; set; }
-
-    private Request? Request;
-    private bool IsManager;
-    private bool IsOwner;
-    private List<Printer> Printers = new();
-    private string SelectedPrinterId = "";
-
-    private bool IsSendingNotification = false;
-    private string? NotificationMessage;
-
-    private bool ShowCommentModal = false;
-    private int CommentFileId;
-    private string CommentText = "";
-    private string NewCommentText = "";
-
-    private const long MaxFileSize = 1024 * 1024 * 50;
-
-    private bool CanEditFiles => IsOwner && (
-        Request?.Status == RequestStatus.Submitted ||
-        Request?.Status == RequestStatus.Rejected ||
-        Request?.Files.Any(f => f.Status == FileReviewStatus.Refused || f.Status == FileReviewStatus.NeedsModification) == true
-    );
-
-    protected override async Task OnInitializedAsync()
-    {
-        HeaderService.SetTitle($"Demande #{Id}", "Détail de la demande");
-
-        Request = await RequestService.GetRequestByIdAsync(Id);
-
-        #if DEBUG
-        if (Request == null) LoadMockRequest();
-        #endif
-
-        IsManager = AuthState.HasPermission("manage_requests");
-
-        var currentMember = AuthState.CurrentMember;
-        IsOwner = currentMember != null && Request?.RequestedByMemberId == currentMember.Id;
-
-        Printers = PrinterService.GetPrinters();
-        SelectedPrinterId = Request?.PrinterId ?? "";
-    }
-
-    #if DEBUG
-    private void LoadMockRequest()
-    {
-        var mockUser = new Member { Id = 16, FirstName = "Nathan", LastName = "Simon", Email = "nathan.simon@edu.devinci.fr", MemberRoles = [new MemberRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
-
-        Request = new Request
-        {
-            Id = Id,
-            Type = RequestType.FDM,
-            Title = "Support de téléphone personnalisé",
-            Description = "Impression d'un support ajustable en PLA noir, avec angle réglable et passage pour câble de charge. Dimensions environ 8x6x10 cm.",
-            Status = RequestStatus.Submitted,
-            MaterialPreference = "PLA Noir",
-            RequestedByMemberId = 16,
-            RequestedBy = mockUser,
-            CreatedAt = DateTime.UtcNow.AddDays(-2),
-            Files = new List<RequestFile>
-            {
-                new() { Id = 1, RequestId = Id, OriginalFileName = "support_base.stl", FilePath = "#", FileSize = 245000, UploadedAt = DateTime.UtcNow.AddDays(-2), Status = FileReviewStatus.Accepted },
-                new() { Id = 2, RequestId = Id, OriginalFileName = "support_bras.stl", FilePath = "#", FileSize = 180000, UploadedAt = DateTime.UtcNow.AddDays(-2), Status = FileReviewStatus.Refused, ManagerComment = "Épaisseur trop fine, risque de casse. Passer à 2mm min." },
-                new() { Id = 3, RequestId = Id, OriginalFileName = "clip_cable.3mf", FilePath = "#", FileSize = 52000, UploadedAt = DateTime.UtcNow.AddDays(-1), Status = FileReviewStatus.Pending },
-            },
-            Comments = new List<RequestComment>
-            {
-                new() { Id = 1, RequestId = Id, AuthorMemberId = 12, Author = new Member { Id = 12, FirstName = "Hugo", LastName = "Petit", Email = "hugo.petit@edu.devinci.fr", MemberRoles = [new MemberRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }] }, Message = "Le fichier support_bras.stl a une épaisseur trop fine au niveau de la charnière. Il faut passer à 2mm minimum sinon ça cassera à l'impression.", CreatedAt = DateTime.UtcNow.AddDays(-1).AddHours(-3) },
-                new() { Id = 2, RequestId = Id, AuthorMemberId = 16, Author = mockUser, Message = "D'accord, je corrige ça ce soir et je renvoie le fichier. Merci pour le retour !", CreatedAt = DateTime.UtcNow.AddDays(-1).AddHours(-1) },
-            }
-        };
-    }
-    #endif
-
-    private void GoBack() => NavManager.NavigateTo("/private/requests");
-
-    private async Task ReviewFile(int fileId, FileReviewStatus status)
-    {
-        await RequestService.ReviewFileAsync(fileId, status);
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private void OpenCommentModal(int fileId)
-    {
-        CommentFileId = fileId;
-        CommentText = "";
-        ShowCommentModal = true;
-    }
-
-    private async Task SubmitComment()
-    {
-        await RequestService.ReviewFileAsync(CommentFileId, FileReviewStatus.NeedsModification, CommentText);
-        ShowCommentModal = false;
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private async Task SendComment()
-    {
-        if (Request == null || string.IsNullOrWhiteSpace(NewCommentText)) return;
-        var member = AuthState.CurrentMember;
-        if (member == null) return;
-
-        await RequestService.AddCommentAsync(Request.Id, member.Id, NewCommentText.Trim());
-        NewCommentText = "";
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private async Task HandleAddFile(InputFileChangeEventArgs e)
-    {
-        if (Request == null) return;
-        var file = e.File;
-        if (file.Size > MaxFileSize) return;
-
-        using var stream = file.OpenReadStream(MaxFileSize);
-        await RequestService.AddFileAsync(Request.Id, stream, file.Name, file.Size);
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private async Task HandleReplaceFile(InputFileChangeEventArgs e, int fileId)
-    {
-        var file = e.File;
-        if (file.Size > MaxFileSize) return;
-
-        using var stream = file.OpenReadStream(MaxFileSize);
-        await RequestService.ReplaceFileAsync(fileId, stream, file.Name, file.Size);
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private async Task DeleteFile(int fileId)
-    {
-        await RequestService.DeleteFileAsync(fileId);
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private async Task SendNotification()
-    {
-        if (Request == null) return;
-        IsSendingNotification = true;
-
-        try
-        {
-            await EmailService.SendRequestReviewNotificationAsync(Request);
-            await RequestService.MarkNotificationSentAsync(Request.Id);
-            Request = await RequestService.GetRequestByIdAsync(Id);
-            NotificationMessage = "Email envoyé avec succès !";
-        }
-        catch
-        {
-            NotificationMessage = "Erreur lors de l'envoi (vérifiez la config SMTP).";
-        }
-        finally
-        {
-            IsSendingNotification = false;
-        }
-    }
-
-    private async Task Approve()
-    {
-        var member = AuthState.CurrentMember;
-        await RequestService.UpdateStatusAsync(Id, RequestStatus.Approved, member?.Id);
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private async Task Reject()
-    {
-        var member = AuthState.CurrentMember;
-        await RequestService.UpdateStatusAsync(Id, RequestStatus.Rejected, member?.Id, "Demande rejetée par le responsable.");
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private async Task Start()
-    {
-        await RequestService.UpdateStatusAsync(Id, RequestStatus.InProgress);
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private async Task Complete()
-    {
-        await RequestService.UpdateStatusAsync(Id, RequestStatus.Completed);
-        Request = await RequestService.GetRequestByIdAsync(Id);
-    }
-
-    private async Task AssignMachine()
-    {
-        if (!string.IsNullOrEmpty(SelectedPrinterId))
-        {
-            await RequestService.AssignMachineAsync(Id, SelectedPrinterId);
-            Request = await RequestService.GetRequestByIdAsync(Id);
-        }
-    }
 }

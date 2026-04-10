@@ -1,47 +1,60 @@
-﻿<div class="printer-card">
-    <div class="status-stripe @printer.GetStatusColor()"></div>
+@using CreaState.Services
+
+<div class="printer-card">
+    <div class="status-stripe @GetStatusColor(Printer.Status)"></div>
 
     <div class="card-header">
         <div class="printer-info">
-            <span class="name">@printer.Name</span>
-            <span class="model">• @printer.Model</span>
+            <span class="name">@Printer.Name</span>
+            <span class="model">• @Printer.Model</span>
         </div>
-        <span class="badge @printer.GetStatusColor()">
-            @printer.StatusLabel
+        <span class="badge @GetStatusColor(Printer.Status)">
+            @Printer.Status.GetDisplayName()
         </span>
     </div>
 
     <div class="card-body">
         <div class="progress-section">
             <div class="file-info">
-                <span class="filename">@(string.IsNullOrEmpty(printer.CurrentFile) ? "--" : printer.CurrentFile)</span>
-                <span class="percent">@printer.Progress%</span>
+                <span class="filename">@(string.IsNullOrEmpty(Printer.CurrentFile) ? "--" : Printer.CurrentFile)</span>
+                <span class="percent">@Printer.Progress%</span>
             </div>
             <div class="progress-track">
-                <div class="progress-fill @printer.GetStatusColor()"
-                     style="width: @(printer.Progress)%"></div>
+                <div class="progress-fill @GetStatusColor(Printer.Status)"
+                     style="width: @(Printer.Progress)%"></div>
             </div>
         </div>
 
         <div class="metrics-grid">
             <div class="metric">
-                <i class="fa-solid fa-temperature-three-quarters"></i> @printer.NozzleTemp°C
+                <i class="fa-solid fa-temperature-three-quarters"></i> @Printer.NozzleTemp°C
             </div>
             <div class="metric">
-                <i class="fa-solid fa-temperature-arrow-up"></i> @printer.BedTemp°C
+                <i class="fa-solid fa-temperature-arrow-up"></i> @Printer.BedTemp°C
             </div>
             <div class="metric">
-                <i class="fa-solid fa-clock"></i> @(printer.TimeRemainingMinutes)m
+                <i class="fa-solid fa-clock"></i> @(Printer.TimeRemainingMinutes)m
             </div>
         </div>
 
         <div class="filament-row">
-            <div class="color-dot" style="background-color: @printer.FilamentColor"></div>
-            <span>@printer.FilamentType</span>
+            <div class="color-dot" style="background-color: @Printer.FilamentColor"></div>
+            <span>@Printer.FilamentType</span>
         </div>
     </div>
 </div>
 
 @code {
-    [Parameter] public required Printer printer { get; set; }
+    [Parameter] public required PrinterRuntimeState Printer { get; set; }
+
+    private static string GetStatusColor(PrinterStatus status) => status switch
+    {
+        PrinterStatus.Printing => "status-printing",
+        PrinterStatus.Idle => "status-idle",
+        PrinterStatus.Error => "status-error",
+        PrinterStatus.Pause => "status-pause",
+        PrinterStatus.Success => "status-success",
+        PrinterStatus.Offline => "status-offline",
+        _ => ""
+    };
 }

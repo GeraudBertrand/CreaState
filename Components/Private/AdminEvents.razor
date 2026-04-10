@@ -1,0 +1,160 @@
+@inject Data.AppDbContext Db
+@using Microsoft.EntityFrameworkCore
+
+<div class="section-card">
+    <div class="card-header">
+        <h3><i class="fa-solid fa-calendar-plus"></i> Événements</h3>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">@Events.Count événement(s)</span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(SuccessMessage))
+    {
+        <div class="toast-success">
+            <i class="fa-solid fa-check-circle"></i> @SuccessMessage
+        </div>
+    }
+
+    <!-- Formulaire de création -->
+    <div class="event-form">
+        <h5><i class="fa-solid fa-plus-circle"></i> Créer un événement</h5>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Titre *</label>
+                <input class="form-input" @bind="NewEvent.Title" placeholder="Ex: Barathon" />
+            </div>
+            <div class="form-group">
+                <label>Lieu</label>
+                <input class="form-input" @bind="NewEvent.Location" placeholder="Ex: Koko" />
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Date et heure *</label>
+                <input type="datetime-local" class="form-input" @bind="NewEventDate" />
+            </div>
+            <div class="form-group">
+                <label>Icône (classe Font Awesome)</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input class="form-input" @bind="NewEvent.Icone" placeholder="fa-solid fa-flask" />
+                    @if (!string.IsNullOrEmpty(NewEvent.Icone))
+                    {
+                        <i class="@NewEvent.Icone" style="font-size: 1.2rem; color: var(--primary-blue);"></i>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Description</label>
+            <textarea class="form-textarea" rows="2" @bind="NewEvent.Description" placeholder="Détails de l'événement..."></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn btn-primary" @onclick="CreateEvent" disabled="@(string.IsNullOrWhiteSpace(NewEvent.Title))">
+                <i class="fa-solid fa-plus"></i> Créer l'événement
+            </button>
+        </div>
+    </div>
+
+    <!-- Liste des événements existants -->
+    @if (Events.Any())
+    {
+        <div class="events-list">
+            <h5 style="padding: 1rem 1.5rem 0.5rem; margin: 0; font-size: 0.9rem; color: var(--text-muted);">
+                Événements à venir
+            </h5>
+            <div class="table-responsive">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Événement</th>
+                            <th>Date</th>
+                            <th>Lieu</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var evt in Events)
+                        {
+                            var isPast = evt.Date < DateTime.UtcNow;
+
+                            <tr style="@(isPast ? "opacity: 0.5;" : "")">
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        @if (!string.IsNullOrEmpty(evt.Icone))
+                                        {
+                                            <i class="@evt.Icone" style="color: var(--primary-blue);"></i>
+                                        }
+                                        <strong>@evt.Title</strong>
+                                    </div>
+                                </td>
+                                <td style="white-space: nowrap;">
+                                    @evt.Date.ToString("dd/MM/yyyy à HH:mm")
+                                </td>
+                                <td>@evt.Location</td>
+                                <td>
+                                    <button class="btn-icon danger" title="Supprimer" @onclick="() => DeleteEvent(evt)">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <i class="fa-solid fa-calendar-xmark"></i>
+            <p>Aucun événement planifié</p>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Evenement> Events = new();
+    private Evenement NewEvent = new();
+    private DateTime NewEventDate = DateTime.Now.AddDays(7).Date.AddHours(14);
+    private string? SuccessMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEvents();
+    }
+
+    private async Task LoadEvents()
+    {
+        Events = await Db.Evenements
+            .OrderBy(e => e.Date)
+            .ToListAsync();
+    }
+
+    private async Task CreateEvent()
+    {
+        if (string.IsNullOrWhiteSpace(NewEvent.Title)) return;
+
+        NewEvent.Date = NewEventDate;
+
+        Db.Evenements.Add(NewEvent);
+        await Db.SaveChangesAsync();
+
+        SuccessMessage = $"Événement \"{NewEvent.Title}\" créé pour le {NewEvent.Date:dd/MM/yyyy à HH:mm}";
+
+        NewEvent = new Evenement();
+        NewEventDate = DateTime.Now.AddDays(7).Date.AddHours(14);
+
+        await LoadEvents();
+    }
+
+    private async Task DeleteEvent(Evenement evt)
+    {
+        Db.Evenements.Remove(evt);
+        await Db.SaveChangesAsync();
+        SuccessMessage = $"Événement \"{evt.Title}\" supprimé";
+        await LoadEvents();
+    }
+}

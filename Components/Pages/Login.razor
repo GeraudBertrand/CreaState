@@ -2,16 +2,14 @@
 @layout LoginLayout
 
 @inject NavigationManager NavManager
-@inject AuthService AuthService
-@inject AuthStateProvider AuthState
 
-<PageTitle>Connexion - Créalab</PageTitle>
+<PageTitle>Connexion - Crealab</PageTitle>
 
 <div class="login-wrapper theme-industrial">
     <div class="login-card animate-fade-in">
         <div class="login-header">
             <i class="fa-solid fa-layer-group fa-3x"></i>
-            <h2>Créalab ESILV</h2>
+            <h2>Crealab ESILV</h2>
             <p>Portail de connexion au Fablab.</p>
         </div>
 
@@ -30,30 +28,29 @@
                 </div>
             }
 
-            <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" class="form-control" @bind="Email" placeholder="prenom.nom@edu.devinci.fr" />
-            </div>
+            @* Form POST to /account/login — sets the auth cookie server-side *@
+            <form method="post" action="/account/login">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="prenom.nom@edu.devinci.fr" />
+                </div>
 
-            <div class="form-group">
-                <label for="password">Mot de passe</label>
-                <input type="password" id="password" class="form-control" @bind="Password" @onkeyup="HandleKeyUp" placeholder="••••••••" />
-            </div>
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" name="password" class="form-control" placeholder="--------" />
+                </div>
 
-            <button class="btn-primary" @onclick="AttemptLogin" disabled="@IsLoading">
-                @if (IsLoading)
-                {
-                    <i class="fa-solid fa-spinner fa-spin"></i>
-                }
-                Se connecter
-            </button>
+                <button type="submit" class="btn-primary">
+                    Se connecter
+                </button>
+            </form>
 
             <button class="btn-secondary" @onclick="GoToRegister">
-                Créer un compte
+                Creer un compte
             </button>
 
             <button class="btn-secondary" @onclick="GoToPublic">
-                Accès Visiteur (Site Public)
+                Acces Visiteur (Site Public)
             </button>
         </div>
 
@@ -64,75 +61,26 @@
 </div>
 
 @code {
-    private string Email { get; set; } = "";
-    private string Password { get; set; } = "";
     private string ErrorMessage { get; set; } = "";
     private string SuccessMessage { get; set; } = "";
-    private bool IsLoading { get; set; } = false;
 
     protected override void OnInitialized()
     {
-        // Vérifier si un message de succès vient de l'inscription
         var uri = new Uri(NavManager.Uri);
-        if (uri.Query.Contains("registered=true"))
-        {
-            SuccessMessage = "Compte créé avec succès ! Connectez-vous.";
-        }
+        var query = uri.Query.ToLowerInvariant();
+
+        if (query.Contains("registered=true"))
+            SuccessMessage = "Compte cree ! Verifiez votre email pour confirmer votre compte.";
+        else if (query.Contains("emailconfirmed=true"))
+            SuccessMessage = "Email confirme ! Vous pouvez maintenant vous connecter.";
+        else if (query.Contains("error=invalid"))
+            ErrorMessage = "Email ou mot de passe incorrect.";
+        else if (query.Contains("error=email_not_confirmed"))
+            ErrorMessage = "Veuillez confirmer votre email avant de vous connecter. Verifiez votre boite de reception.";
+        else if (query.Contains("error=invalid_token"))
+            ErrorMessage = "Le lien de confirmation est invalide ou a expire.";
     }
 
-    private async Task AttemptLogin()
-    {
-        ErrorMessage = "";
-        SuccessMessage = "";
-
-        if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
-        {
-            ErrorMessage = "Veuillez remplir tous les champs.";
-            return;
-        }
-
-        IsLoading = true;
-        try
-        {
-            var member = await AuthService.LoginAsync(Email, Password);
-            if (member != null)
-            {
-                AuthState.Login(member);
-                if(member.IsBoardMember)
-                {
-                    NavManager.NavigateTo("/private");
-                }
-                else
-                {
-                    NavManager.NavigateTo("/public");
-                }
-            }
-            else
-            {
-                ErrorMessage = "Email ou mot de passe incorrect.";
-            }
-        }
-        finally
-        {
-            IsLoading = false;
-        }
-    }
-
-    private void GoToPublic()
-    {
-        NavManager.NavigateTo("/public");
-    }
-
-    private void GoToRegister()
-    {
-        NavManager.NavigateTo("/register");
-    }
-
-    private async Task HandleKeyUp(KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter")
-        {
-            await AttemptLogin();
-        }
-    }
+    private void GoToPublic() => NavManager.NavigateTo("/public");
+    private void GoToRegister() => NavManager.NavigateTo("/register");
 }

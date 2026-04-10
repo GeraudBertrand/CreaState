@@ -1,40 +1,21 @@
-using CreaState.Data;
 using CreaState.Models;
-using Microsoft.EntityFrameworkCore;
+using CreaState.Repositories.Interfaces;
 
 namespace CreaState.Services
 {
     public class PrintJobService
     {
-        private readonly AppDbContext _db;
+        private readonly IPrintJobRepository _printJobRepo;
 
-        public PrintJobService(AppDbContext db)
+        public PrintJobService(IPrintJobRepository printJobRepo)
         {
-            _db = db;
+            _printJobRepo = printJobRepo;
         }
 
-        /// <summary>
-        /// Récupère les impressions récentes avec filtres optionnels.
-        /// </summary>
-        public async Task<List<PrintJob>> GetRecentJobsAsync(
-            int days = 30, string? printerId = null, PrintStatus? status = null)
-        {
-            var since = DateTime.UtcNow.AddDays(-days);
+        public async Task<List<PrintJob>> GetRecentJobsAsync(int days = 30, int? printerId = null, PrintStatus? status = null)
+            => await _printJobRepo.GetRecentAsync(days, printerId, status);
 
-            var query = _db.PrintJobs
-                .Include(pj => pj.Printer)
-                .Where(pj => pj.StartTime >= since)
-                .AsQueryable();
-
-            if (!string.IsNullOrEmpty(printerId))
-                query = query.Where(pj => pj.PrinterId == printerId);
-
-            if (status.HasValue)
-                query = query.Where(pj => pj.Status == status.Value);
-
-            return await query
-                .OrderByDescending(pj => pj.StartTime)
-                .ToListAsync();
-        }
+        public async Task<PrintJob> AddJobAsync(PrintJob job)
+            => await _printJobRepo.AddAsync(job);
     }
 }

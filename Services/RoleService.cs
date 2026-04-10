@@ -1,39 +1,21 @@
-using CreaState.Data;
 using CreaState.Models;
-using Microsoft.EntityFrameworkCore;
+using CreaState.Repositories.Interfaces;
 
 namespace CreaState.Services
 {
     public class RoleService
     {
-        private readonly AppDbContext _db;
+        private readonly IRoleRepository _roleRepo;
 
-        public RoleService(AppDbContext db)
+        public RoleService(IRoleRepository roleRepo)
         {
-            _db = db;
+            _roleRepo = roleRepo;
         }
 
-        /// <summary>
-        /// Récupère tous les rôles avec leurs permissions.
-        /// </summary>
         public async Task<List<Role>> GetAllRolesAsync()
-        {
-            return await _db.Roles
-                .Include(r => r.RolePermissions)
-                    .ThenInclude(rp => rp.Permission)
-                .OrderBy(r => r.Id)
-                .ToListAsync();
-        }
+            => await _roleRepo.GetAllWithPermissionsAsync();
 
-        /// <summary>
-        /// Récupère un rôle par son ID avec ses permissions.
-        /// </summary>
         public async Task<Role?> GetRoleByIdAsync(int id)
-        {
-            return await _db.Roles
-                .Include(r => r.RolePermissions)
-                    .ThenInclude(rp => rp.Permission)
-                .FirstOrDefaultAsync(r => r.Id == id);
-        }
+            => await _roleRepo.GetWithPermissionsAsync(id);
     }
 }

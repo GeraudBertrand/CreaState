@@ -1,19 +1,19 @@
-﻿<div class="member-card">
+<div class="member-card">
     <div class="card-top">
-        <div class="avatar" style="background-color: @member.AvatarColor">
-            @member.Initials
+        <div class="avatar" style="background-color: @AvatarColor">
+            @Initials
         </div>
         <div class="member-identity">
-            <h3>@member.FullName</h3>
-            <span class="member-role @(member.IsBoardMember ? "role-board" : "")">
-                @member.RoleLabel
+            <h3>@FullName</h3>
+            <span class="member-role @(IsBoardMember ? "role-board" : "")">
+                @RoleLabel
             </span>
         </div>
     </div>
 
     <div class="card-details">
         <div class="detail-item">
-            <i class="fa-solid fa-graduation-cap"></i> Promo @member.ClassYearLabel
+            <i class="fa-solid fa-graduation-cap"></i> Promo @member.ClassYear.GetDisplayName()
         </div>
         <a class="detail-item" href="mailto:@member.Email">
             <i class="fa-regular fa-envelope"></i> Contacter
@@ -22,5 +22,12 @@
 </div>
 
 @code {
-    [Parameter] public required Member member { get; set; }
+    [Parameter] public required Membre member { get; set; }
+
+    private string FullName => $"{member.FirstName} {member.LastName}";
+    private string Initials => string.IsNullOrEmpty(member.FirstName) || string.IsNullOrEmpty(member.LastName)
+        ? "??" : $"{member.FirstName[0]}{member.LastName[0]}".ToUpper();
+    private bool IsBoardMember => member.UserRoles.Any(ur => ur.Role?.Name != "Eleve");
+    private string RoleLabel => string.Join(", ", member.UserRoles.Select(ur => ur.Role?.DisplayName ?? ""));
+    private string AvatarColor => IsBoardMember ? "var(--accent-magenta)" : "var(--primary-blue)";
 }

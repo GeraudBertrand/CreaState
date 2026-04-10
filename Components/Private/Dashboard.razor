@@ -30,19 +30,14 @@
         <div class="kpi-card">
             <div class="kpi-icon kpi-orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div class="kpi-content">
-                <h3>@BreakdownCount</h3>
-                <p>Incident(s) signalé(s)</p>
+                <h3>@LowStockCount</h3>
+                <p>Stock bas</p>
             </div>
         </div>
     </div>
 
     <div class="dashboard-layout">
         <div class="col-left">
-
-            @if(latestAnnouncement != null)
-            {
-                <AnnouncementWidget announcement="@latestAnnouncement" />
-            }
 
             <!-- Alertes stock bas -->
             @if (LowStockItems.Any())
@@ -55,8 +50,8 @@
                     @foreach (var item in LowStockItems.Take(5))
                     {
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem;">
-                            <span>@item.Name</span>
-                            <span class="@item.StockCssClass" style="font-weight: 600;">@item.QuantityRemaining @item.Unit</span>
+                            <span>@item.Type @(!string.IsNullOrEmpty(item.CouleurNom) ? item.CouleurNom : "")</span>
+                            <span style="font-weight: 600; color: var(--status-error);">@item.Quantite</span>
                         </div>
                     }
                 </div>
@@ -81,8 +76,6 @@
                         <p>Laissez nous le temps de préparer un sandwich.</p>
                     </div>
                 }
-
-
             </div>
         </div>
 
@@ -115,16 +108,12 @@
                 <ul style="list-style: none; padding: 0;">
                     @foreach (var printer in PrinterList)
                     {
-                        var hasBreakdown = BreakdownPrinterIds.Contains(printer.Id);
                         <li style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
                             <span>
-                                <i class="fa-solid @(hasBreakdown ? "fa-triangle-exclamation" : "fa-check")"
-                                   style="color: @(hasBreakdown ? "var(--status-error)" : "var(--status-success)");"></i>
+                                <i class="fa-solid fa-check" style="color: var(--status-success);"></i>
                                 @printer.Name
                             </span>
-                            <span style="font-weight: bold; color: @(hasBreakdown ? "var(--status-error)" : "var(--status-success)");">
-                                @(hasBreakdown ? "En panne" : "OK")
-                            </span>
+                            <span style="font-weight: bold; color: var(--status-success);">OK</span>
                         </li>
                     }
                 </ul>
@@ -138,71 +127,47 @@
     private int MemberCount;
     private int ActivePrinterCount;
     private int TotalPrinterCount;
-    private int BreakdownCount;
+    private int LowStockCount;
     private int PendingRequestCount;
 
     // Data lists
     private List<Formation>? FormationsList;
-    private List<Announcement>? AllAnnouncements;
-    private List<Event>? Events;
-    private List<InventoryItem> LowStockItems = new();
+    private List<Evenement>? Events;
+    private List<Consommable> LowStockItems = new();
     private List<Printer> PrinterList = new();
-    private HashSet<string> BreakdownPrinterIds = new();
 
-    private Announcement? latestAnnouncement;
-    private Event? NextEvent;
+    private Evenement? NextEvent;
 
     protected override async Task OnInitializedAsync()
     {
         HeaderService.SetTitle("Bienvenue au Créalab", "Résumé des activités et informations importantes");
 
         // KPIs depuis la BDD
-        MemberCount = await Db.Members.CountAsync(m => m.IsActive);
-        PendingRequestCount = await Db.Requests.CountAsync(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.UnderReview);
+        MemberCount = await Db.Membres.CountAsync(m => m.IsActive);
+        PendingRequestCount = await Db.Requetes.CountAsync(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.UnderReview);
 
         // Imprimantes
         PrinterList = PrinterService.GetPrinters();
         TotalPrinterCount = PrinterList.Count;
-        ActivePrinterCount = PrinterList.Count(p => p.Status == PrinterStatus.Printing || p.Status == PrinterStatus.Idle);
-
-        // Pannes
-        var breakdowns = await MaintenanceService.GetBreakdownReportsAsync();
-        BreakdownPrinterIds = breakdowns.Select(b => b.PrinterId).ToHashSet();
-        BreakdownCount = BreakdownPrinterIds.Count;
+        ActivePrinterCount = PrinterList.Count; // All are considered active from config
 
         // Stock bas
         LowStockItems = await InventoryService.GetLowStockItemsAsync();
+        LowStockCount = LowStockItems.Count;
 
-        // Formations, Annonces, Événements depuis BDD
+        // Formations, Événements depuis BDD
         FormationsList = await Db.Formations.OrderBy(f => f.Date).Take(4).ToListAsync();
-        AllAnnouncements = await Db.Announcements.OrderByDescending(a => a.PublishDate).ToListAsync();
-        Events = await Db.Events.OrderBy(e => e.Date).ToListAsync();
+        Events = await Db.Evenements.OrderBy(e => e.Date).ToListAsync();
 
         #if DEBUG
-        // Si pas de données en BDD, charger les mocks
         if (MemberCount <= 1) MemberCount = 12;
         if (PendingRequestCount == 0) PendingRequestCount = 3;
         if (LowStockItems.Count == 0) LoadMockLowStock();
-        if (BreakdownCount == 0) { BreakdownPrinterIds = new HashSet<string> { "printer-bonnie" }; BreakdownCount = 1; }
         if (FormationsList.Count == 0) LoadMockFormations();
-        if (AllAnnouncements.Count == 0) LoadMockAnnouncements();
         if (Events == null || Events.Count == 0) LoadMockEvents();
         #endif
 
-        GetLastAnnouncement();
         GetNextEvent();
-    }
-
-    private void GetLastAnnouncement()
-    {
-        if(AllAnnouncements != null && AllAnnouncements.Count != 0)
-        {
-            latestAnnouncement = AllAnnouncements
-            .Where(a => a.IsActive)
-            .OrderByDescending(a => a.PublishDate)
-            .OrderByDescending(a => a.Severity)
-            .FirstOrDefault();
-        }
     }
 
     private void GetNextEvent()
@@ -210,7 +175,7 @@
         if(Events != null && Events.Count != 0)
         {
             NextEvent = Events
-            .Where(e => e.IsUpcoming)
+            .Where(e => (e.Date.Date - DateTime.Now.Date).Days >= 0)
             .OrderBy(e => e.Date)
             .FirstOrDefault();
         }
@@ -219,35 +184,28 @@
     // Fallback mock data
     private void LoadMockLowStock()
     {
-        LowStockItems = new List<InventoryItem>
+        LowStockItems = new List<Consommable>
         {
-            new() { Id = 2, Name = "PLA Blanc 1kg", Category = InventoryCategory.Filament, QuantityRemaining = 150, InitialQuantity = 1000, Unit = "g", LowStockThreshold = 200 },
-            new() { Id = 4, Name = "ABS Rouge 750g", Category = InventoryCategory.Filament, QuantityRemaining = 90, InitialQuantity = 750, Unit = "g", LowStockThreshold = 150 },
+            new() { Id = 2, Type = "PLA", CouleurNom = "Blanc", CouleurHex = "#ffffff", Quantite = 150, Seuil = 200 },
+            new() { Id = 4, Type = "ABS", CouleurNom = "Rouge", CouleurHex = "#e74c3c", Quantite = 90, Seuil = 150 },
         };
+        LowStockCount = LowStockItems.Count;
     }
 
     private void LoadMockFormations()
     {
         FormationsList = new List<Formation>
         {
-            new() { Id = 1, Title = "Initiation Impression 3D (FDM)", Description = "Apprenez les bases du tranchage et lancez votre première impression.", Instructor = "Resp. Technique", Date = DateOnly.FromDateTime(DateTime.Now.AddDays(7)), StartTime = new TimeOnly(14, 00), Duration = TimeSpan.FromHours(2) },
-            new() { Id = 2, Title = "Sécurité Découpeuse Laser", Description = "Formation obligatoire pour utiliser la Trotec en autonomie.", Instructor = "Sarah", Date = DateOnly.FromDateTime(DateTime.Now.AddDays(14)), StartTime = new TimeOnly(10, 00), Duration = TimeSpan.FromHours(2) },
-        };
-    }
-
-    private void LoadMockAnnouncements()
-    {
-        AllAnnouncements = new List<Announcement>
-        {
-            new() { Id = 1, Title = "Bienvenue sur CreaState !", Message = "La plateforme de gestion du Créalab est en ligne.", Severity = AnnouncementSeverity.Info, PublishDate = DateTime.Now, DisplayDuration = TimeSpan.FromDays(30) }
+            new() { Id = 1, Titre = "Initiation Impression 3D (FDM)", Description = "Apprenez les bases du tranchage et lancez votre première impression.", Date = DateOnly.FromDateTime(DateTime.Now.AddDays(7)), StartTime = new TimeOnly(14, 00), Duration = TimeSpan.FromHours(2) },
+            new() { Id = 2, Titre = "Sécurité Découpeuse Laser", Description = "Formation obligatoire pour utiliser la Trotec en autonomie.", Date = DateOnly.FromDateTime(DateTime.Now.AddDays(14)), StartTime = new TimeOnly(10, 00), Duration = TimeSpan.FromHours(2) },
         };
     }
 
     private void LoadMockEvents()
     {
-        Events = new List<Event>
+        Events = new List<Evenement>
         {
-            new() { Id = 1, Title = "Prochaine réunion Créalab", Description = "Ordre du jour à définir.", Date = DateTime.Now.AddDays(7), IconClass = "fa-calendar-day", Location = "Fablab" }
+            new() { Id = 1, Title = "Prochaine réunion Créalab", Description = "Ordre du jour à définir.", Date = DateTime.Now.AddDays(7), Icone = "fa-calendar-day", Location = "Fablab" }
         };
     }
 }

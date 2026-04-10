@@ -1,24 +1,26 @@
-﻿<div class="formation-item">
+@using System.Globalization
+
+<div class="formation-item">
     <div class="date-badge">
-        <span class="date-day">@formation.DayBadge</span>
-        <span class="date-month">@formation.MonthBadge</span>
+        <span class="date-day">@Formation.Date.Day.ToString("00")</span>
+        <span class="date-month">@Formation.Date.ToString("MMM", CultureInfo.CreateSpecificCulture("fr-FR")).ToUpper()</span>
     </div>
 
     <div class="formation-info">
-        <h4>@formation.Title</h4>
+        <h4>@Formation.Titre</h4>
         <div class="meta-info">
-            <i class="fa-regular fa-clock"></i> @formation.FormattedTimeRange
+            <i class="fa-regular fa-clock"></i> @($"{Formation.StartTime:HH\\hmm} - {Formation.StartTime.Add(Formation.Duration):HH\\hmm}")
             <span class="separator">•</span>
-            <span class="instructor">Animé par @formation.Instructor</span>
+            <span class="instructor">Animé par @(Formation.Instructeur != null ? $"{Formation.Instructeur.FirstName} {Formation.Instructeur.LastName}" : "—")</span>
         </div>
 
-        @if (!string.IsNullOrEmpty(formation.Description))
+        @if (!string.IsNullOrEmpty(Formation.Description))
         {
-            <p class="description">@formation.Description</p>
+            <p class="description">@Formation.Description</p>
         }
     </div>
 </div>
 
 @code {
-    [Parameter] public required Formation formation { get; set; }
+    [Parameter] public required Formation Formation { get; set; }
 }

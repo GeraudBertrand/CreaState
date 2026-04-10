@@ -1,60 +1,46 @@
-using CreaState.Data;
 using CreaState.Models;
-using Microsoft.EntityFrameworkCore;
+using CreaState.Repositories.Interfaces;
 
 namespace CreaState.Services
 {
     public class InventoryService
     {
-        private readonly AppDbContext _db;
+        private readonly IConsommableRepository _consommableRepo;
 
-        public InventoryService(AppDbContext db)
+        public InventoryService(IConsommableRepository consommableRepo)
         {
-            _db = db;
+            _consommableRepo = consommableRepo;
         }
 
-        public async Task<List<InventoryItem>> GetAllItemsAsync(InventoryCategory? category = null)
+        public async Task<List<Consommable>> GetAllItemsAsync(string? type = null)
         {
-            var query = _db.InventoryItems.AsQueryable();
-            if (category.HasValue)
-                query = query.Where(i => i.Category == category.Value);
-            return await query.OrderBy(i => i.Name).ToListAsync();
+            if (!string.IsNullOrEmpty(type))
+                return await _consommableRepo.GetByTypeAsync(type);
+            return await _consommableRepo.GetAllAsync();
         }
 
-        public async Task<List<InventoryItem>> GetLowStockItemsAsync()
-        {
-            return await _db.InventoryItems
-                .Where(i => i.QuantityRemaining <= i.LowStockThreshold)
-                .OrderBy(i => i.QuantityRemaining)
-                .ToListAsync();
-        }
+        public async Task<List<Consommable>> GetLowStockItemsAsync()
+            => await _consommableRepo.GetLowStockAsync();
 
-        public async Task<InventoryItem> AddItemAsync(InventoryItem item)
-        {
-            item.LastUpdated = DateTime.UtcNow;
-            _db.InventoryItems.Add(item);
-            await _db.SaveChangesAsync();
-            return item;
-        }
+        public async Task<Consommable> AddItemAsync(Consommable item)
+            => await _consommableRepo.AddAsync(item);
 
-        public async Task<bool> UpdateQuantityAsync(int itemId, double newQuantity)
+        public async Task<bool> UpdateQuantityAsync(int itemId, int newQuantity)
         {
-            var item = await _db.InventoryItems.FindAsync(itemId);
+            var item = await _consommableRepo.GetByIdAsync(itemId);
             if (item == null) return false;
 
-            item.QuantityRemaining = newQuantity;
-            item.LastUpdated = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
+            item.Quantite = newQuantity;
+            await _consommableRepo.UpdateAsync(item);
             return true;
         }
 
         public async Task<bool> DeleteItemAsync(int itemId)
         {
-            var item = await _db.InventoryItems.FindAsync(itemId);
+            var item = await _consommableRepo.GetByIdAsync(itemId);
             if (item == null) return false;
 
-            _db.InventoryItems.Remove(item);
-            await _db.SaveChangesAsync();
+            await _consommableRepo.DeleteAsync(item);
             return true;
         }
     }

@@ -1,38 +1,25 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Identity;
 
 namespace CreaState.Models
 {
-    public class User
+    public class User : IdentityUser<int>
     {
-        [Key]
-        public int Id { get; set; }
-
         [Required, MaxLength(100)]
         public string FirstName { get; set; } = string.Empty;
 
         [Required, MaxLength(100)]
         public string LastName { get; set; } = string.Empty;
 
-        [Required, MaxLength(200)]
-        public string Email { get; set; } = string.Empty;
+        public ClassYearEnum ClassYear { get; set; } = ClassYearEnum.Other;
 
-        public string? PasswordHash { get; set; }
+        public UserType UserType { get; set; } = UserType.Eleve;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
         public DateTime? LastLoginAt { get; set; }
 
-        [NotMapped]
-        public string FullName => $"{FirstName} {LastName}";
-
-        [NotMapped]
-        public string Initials
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(FirstName) || string.IsNullOrEmpty(LastName)) return "??";
-                return $"{FirstName[0]}{LastName[0]}".ToUpper();
-            }
-        }
+        // Navigation vers les rôles (via la table de jointure Identity)
+        public ICollection<AppUserRole> UserRoles { get; set; } = [];
     }
 }
