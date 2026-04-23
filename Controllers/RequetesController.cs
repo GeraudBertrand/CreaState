@@ -45,6 +45,7 @@ namespace CreaState.Controllers
             var requete = new Requete
             {
                 Type = dto.Type,
+                Context = dto.Context,
                 Title = dto.Title,
                 Description = dto.Description,
                 DemandeurId = dto.DemandeurId

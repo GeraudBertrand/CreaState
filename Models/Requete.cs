@@ -9,6 +9,8 @@ namespace CreaState.Models
 
         public RequestType Type { get; set; } = RequestType.FDM;
 
+        public RequestContext Context { get; set; } = RequestContext.Personnel;
+
         public RequestStatus Status { get; set; } = RequestStatus.Submitted;
 
         [Required, MaxLength(200)]

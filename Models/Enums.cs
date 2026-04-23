@@ -41,6 +41,18 @@ namespace CreaState.Models
         Other
     }
 
+    public enum RequestContext
+    {
+        [Display(Name = "Personnel")]
+        Personnel,
+        [Display(Name = "Projet")]
+        Projet,
+        [Display(Name = "École")]
+        Ecole,
+        [Display(Name = "Association")]
+        Association
+    }
+
     public enum RequestStatus
     {
         [Display(Name = "Soumise")]

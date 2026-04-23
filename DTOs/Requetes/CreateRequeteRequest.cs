@@ -8,6 +8,9 @@ namespace CreaState.DTOs.Requetes
         [Required]
         public RequestType Type { get; set; }
 
+        [Required]
+        public RequestContext Context { get; set; }
+
         [Required, MaxLength(200)]
         public string Title { get; set; } = string.Empty;
 

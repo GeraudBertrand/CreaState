@@ -159,6 +159,8 @@ namespace CreaState.Mapping
             Id = r.Id,
             Type = r.Type.ToString(),
             TypeLabel = r.Type.GetDisplayName(),
+            Context = r.Context.ToString(),
+            ContextLabel = r.Context.GetDisplayName(),
             Status = r.Status.ToString(),
             StatusLabel = r.Status.GetDisplayName(),
             StatusCssClass = r.Status switch

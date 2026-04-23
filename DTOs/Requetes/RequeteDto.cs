@@ -7,6 +7,8 @@ namespace CreaState.DTOs.Requetes
         public int Id { get; set; }
         public string Type { get; set; } = string.Empty;
         public string TypeLabel { get; set; } = string.Empty;
+        public string Context { get; set; } = string.Empty;
+        public string ContextLabel { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string StatusLabel { get; set; } = string.Empty;
         public string StatusCssClass { get; set; } = string.Empty;

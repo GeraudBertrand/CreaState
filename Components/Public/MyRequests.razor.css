@@ -11,6 +11,19 @@
     .public-header p {
         color: var(--text-muted, #95a5a6);
         font-size: 1.1rem;
+        margin: 0;
+    }
+
+.public-header--with-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+    .public-header--with-action .btn-primary {
+        flex-shrink: 0;
     }
 
 .requests-wrapper {

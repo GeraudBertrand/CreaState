@@ -9,9 +9,14 @@
 <PageTitle>Mes demandes - Créalab</PageTitle>
 
 <div class="main-container theme-industrial">
-    <header class="public-header text-center">
-        <h1>Mes Demandes</h1>
-        <p>Suivez l'avancement de vos demandes d'impression et de découpe.</p>
+    <header class="public-header public-header--with-action">
+        <div>
+            <h1>Mes Demandes</h1>
+            <p>Suivez l'avancement de vos demandes d'impression et de découpe.</p>
+        </div>
+        <a href="/public/request" class="btn-primary">
+            <i class="fa-solid fa-plus"></i> Nouvelle demande
+        </a>
     </header>
 
     <div class="requests-wrapper">
@@ -42,6 +47,9 @@
                         <div class="request-meta">
                             <span class="meta-item">
                                 <i class="fa-solid fa-cube"></i> @request.Type.GetDisplayName()
+                            </span>
+                            <span class="meta-item">
+                                <i class="fa-solid fa-tag"></i> @request.Context.GetDisplayName()
                             </span>
                             <span class="meta-item">
                                 <i class="fa-solid fa-paperclip"></i> @request.Fichiers.Count fichier(s)
@@ -99,7 +107,7 @@
         {
             new()
             {
-                Id = 1, Type = RequestType.FDM, Title = "Support de téléphone personnalisé",
+                Id = 1, Type = RequestType.FDM, Context = RequestContext.Personnel, Title = "Support de téléphone personnalisé",
                 Description = "Support ajustable en PLA noir", Status = RequestStatus.Submitted,
                 DemandeurId = 16, Demandeur = mockUser,
                 CreatedAt = DateTime.UtcNow.AddDays(-2),
@@ -112,7 +120,7 @@
             },
             new()
             {
-                Id = 2, Type = RequestType.SLA, Title = "Figurine détaillée",
+                Id = 2, Type = RequestType.SLA, Context = RequestContext.Projet, Title = "Figurine détaillée",
                 Description = "Figurine en résine haute précision", Status = RequestStatus.Approved,
                 DemandeurId = 16, Demandeur = mockUser,
                 CreatedAt = DateTime.UtcNow.AddDays(-5),
@@ -123,7 +131,7 @@
             },
             new()
             {
-                Id = 3, Type = RequestType.Laser, Title = "Plaque signalétique bureau",
+                Id = 3, Type = RequestType.Laser, Context = RequestContext.Association, Title = "Plaque signalétique bureau",
                 Description = "Découpe laser sur bois 3mm", Status = RequestStatus.Completed,
                 DemandeurId = 16, Demandeur = mockUser,
                 CreatedAt = DateTime.UtcNow.AddDays(-15),
