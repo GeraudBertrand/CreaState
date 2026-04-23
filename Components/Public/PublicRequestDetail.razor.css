@@ -1,6 +1,18 @@
 .detail-wrapper {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
+}
+
+.detail-body-grid {
+    display: grid;
+    grid-template-columns: 7fr 3fr;
+    gap: 1rem;
+    align-items: start;
+}
+
+.detail-col-files,
+.detail-col-discussion {
+    min-width: 0; /* évite le débordement du contenu dans les colonnes flex/grid */
 }
 
 .btn-back {
@@ -402,6 +414,12 @@
 }
 
 /* --- Responsive --- */
+@media (max-width: 900px) {
+    .detail-body-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 600px) {
     .request-header-row {
         flex-direction: column;

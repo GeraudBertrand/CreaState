@@ -36,6 +36,10 @@
                         <strong>@Request.Type.GetDisplayName()</strong>
                     </div>
                     <div class="info-item">
+                        <small>Contexte</small>
+                        <strong>@Request.Context.GetDisplayName()</strong>
+                    </div>
+                    <div class="info-item">
                         <small>Créée le</small>
                         <strong>@Request.CreatedAt.ToString("dd/MM/yyyy à HH:mm")</strong>
                     </div>
@@ -58,8 +62,9 @@
                 }
             </div>
 
-            <!-- Fichiers -->
-            <div class="card-clean mt-section">
+            <div class="detail-body-grid mt-section">
+                <!-- Fichiers -->
+                <div class="card-clean detail-col-files">
                 <div class="section-header">
                     <h5><i class="fa-solid fa-paperclip"></i> Fichiers (@Request.Fichiers.Count)</h5>
                     @if (CanEditFiles)
@@ -109,10 +114,10 @@
                         }
                     </div>
                 }
-            </div>
+                </div>
 
-            <!-- Discussion -->
-            <div class="card-clean mt-section comments-section">
+                <!-- Discussion -->
+                <div class="card-clean comments-section detail-col-discussion">
                 <h5><i class="fa-solid fa-comments"></i> Discussion</h5>
 
                 @if (Request.Commentaires.Any())
@@ -154,6 +159,7 @@
                     <button class="btn-primary btn-send" @onclick="SendComment" disabled="@string.IsNullOrWhiteSpace(NewCommentText)">
                         <i class="fa-solid fa-paper-plane"></i> Envoyer
                     </button>
+                </div>
                 </div>
             </div>
         }
