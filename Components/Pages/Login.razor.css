@@ -72,7 +72,18 @@
     display: flex;
     flex-direction: column;
     gap: 18px;
+    justify-content: center;
 }
+
+    .login-form form{
+        display: flex;
+        flex-direction: column;
+    }
+
+    .login-form #register_btn{
+        margin-left: auto;
+        margin-right: auto;
+    }
 
 .form-group {
     display: flex;
