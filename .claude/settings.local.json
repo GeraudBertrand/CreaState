@@ -9,7 +9,9 @@
       "Bash(xargs grep:*)",
       "Bash(ls -la ./Components/Private/*.razor)",
       "Bash(find D:/Project/CreaState/wwwroot -name *stl* -o -name *3d* -o -name *viewer* -o -name *three*)",
-      "Bash(grep -E \"\\\\.cs$\")"
+      "Bash(grep -E \"\\\\.cs$\")",
+      "Bash(gh pr *)",
+      "Bash(gh repo *)"
     ]
   }
 }
