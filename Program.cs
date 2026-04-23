@@ -110,7 +110,7 @@ builder.Services.AddScoped<MemberService>();
 builder.Services.AddScoped<RoleService>();
 builder.Services.AddScoped<PageHeaderService>();
 builder.Services.AddSingleton<PrinterService>();
-builder.Services.AddHostedService<PrinterMqttWorker>();
+//builder.Services.AddHostedService<PrinterMqttWorker>();
 builder.Services.AddScoped<RequestService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<MaintenanceService>();
