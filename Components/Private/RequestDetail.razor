@@ -15,273 +15,257 @@
     }
     else
     {
-        <div class="d-flex gap-3 mb-3">
-            <button class="btn btn-secondary btn-sm" @onclick="GoBack">
-                <i class="fa-solid fa-arrow-left"></i> Retour
-            </button>
+        <!-- En-tête compact -->
+        <div class="card-clean request-header-card">
+            <div class="request-header-row">
+                <div>
+                    <h2 class="request-title">@Request.Title</h2>
+                    <span class="request-id">#CR-@Request.Id</span>
+                </div>
+                <span class="badge @GetStatusCssClass(Request.Status) badge-lg">@Request.Status.GetDisplayName()</span>
+            </div>
+
+            <div class="request-info-grid">
+                <div class="info-item">
+                    <small>Type</small>
+                    <strong>@Request.Type.GetDisplayName()</strong>
+                </div>
+                <div class="info-item">
+                    <small>Demandeur</small>
+                    <strong>@(Request.Demandeur != null ? $"{Request.Demandeur.FirstName} {Request.Demandeur.LastName}" : "—")</strong>
+                </div>
+                <div class="info-item">
+                    <small>Créée le</small>
+                    <strong>@Request.CreatedAt.ToString("dd/MM/yyyy à HH:mm")</strong>
+                </div>
+                @if (Request.UpdatedAt.HasValue)
+                {
+                    <div class="info-item">
+                        <small>Mise à jour</small>
+                        <strong>@Request.UpdatedAt.Value.ToString("dd/MM/yyyy à HH:mm")</strong>
+                    </div>
+                }
+                @if (Request.Assigne != null)
+                {
+                    <div class="info-item">
+                        <small>Assignée à</small>
+                        <strong>@($"{Request.Assigne.FirstName} {Request.Assigne.LastName}")</strong>
+                    </div>
+                }
+            </div>
+
+            @if (!string.IsNullOrEmpty(Request.Description))
+            {
+                <div class="description-block">
+                    <small>Description</small>
+                    <p>@Request.Description</p>
+                </div>
+            }
+
+            @if (Request.Status == RequestStatus.Rejected && !string.IsNullOrEmpty(Request.RejectionReason))
+            {
+                <div class="rejection-block">
+                    <strong><i class="fa-solid fa-circle-xmark"></i> Raison du rejet :</strong>
+                    <p>@Request.RejectionReason</p>
+                </div>
+            }
         </div>
 
-        <div class="row g-3">
-            <!-- Détails principaux -->
-            <div class="col-md-8">
-                <div class="card-clean" style="padding: 1.5rem;">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <h4 style="margin: 0;">@Request.Title</h4>
-                        <span class="badge @GetStatusCssClass(Request.Status)">@Request.Status.GetDisplayName()</span>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <small style="color: var(--text-muted);">Type</small>
-                            <div><strong>@Request.Type.GetDisplayName()</strong></div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <small style="color: var(--text-muted);">Description</small>
-                        <div style="background: var(--bg-body); padding: 1rem; border-radius: 8px; margin-top: 0.25rem;">
-                            @Request.Description
-                        </div>
-                    </div>
-
-                    @if (Request.Status == RequestStatus.Rejected && !string.IsNullOrEmpty(Request.RejectionReason))
+        <div class="detail-body-grid mt-section">
+            <!-- Fichiers -->
+            <div class="card-clean detail-col-files">
+                <div class="section-header">
+                    <h5><i class="fa-solid fa-paperclip"></i> Fichiers (@Request.Fichiers.Count)</h5>
+                    @if (CanEditFiles)
                     {
-                        <div style="background: #ffe6e6; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--status-error);">
-                            <strong><i class="fa-solid fa-circle-xmark"></i> Raison du rejet :</strong>
-                            <p style="margin: 0.5rem 0 0;">@Request.RejectionReason</p>
-                        </div>
+                        <label class="btn-add-file">
+                            <i class="fa-solid fa-plus"></i> Ajouter
+                            <InputFile OnChange="HandleAddFile" accept=".stl,.3mf,.dxf,.obj" style="display: none;" />
+                        </label>
                     }
                 </div>
 
-                <!-- Section fichiers -->
-                <div class="card-clean mt-3" style="padding: 1.5rem;">
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h6 style="margin: 0;"><i class="fa-solid fa-paperclip"></i> Fichiers (@Request.Fichiers.Count)</h6>
-                        @if (CanEditFiles)
+                @if (!Request.Fichiers.Any())
+                {
+                    <p class="text-muted-center">Aucun fichier joint.</p>
+                }
+                else
+                {
+                    <div class="files-list">
+                        @foreach (var file in Request.Fichiers.OrderBy(f => f.UploadedAt))
                         {
-                            <label class="btn btn-sm btn-outline-primary" style="cursor: pointer; margin: 0;">
-                                <i class="fa-solid fa-plus"></i> Ajouter
-                                <InputFile OnChange="HandleAddFile" accept=".stl,.3mf,.dxf,.obj" style="display: none;" />
-                            </label>
+                            var fileCss = GetFileStatusCss(file.ReviewStatus);
+                            var sizeLabel = GetFileSizeLabel(file.FileSize);
+
+                            <div class="file-row">
+                                <div class="file-info">
+                                    <i class="fa-solid fa-file-code" style="color: var(--primary-blue);"></i>
+                                    <div class="file-details">
+                                        <a href="@file.FilePath" target="_blank" class="file-name">@file.FileName</a>
+                                        <small>@sizeLabel — @file.UploadedAt.ToString("dd/MM HH:mm")</small>
+                                    </div>
+                                    <span class="file-status-badge @fileCss">@file.ReviewStatus.GetDisplayName()</span>
+                                </div>
+
+                                <div class="file-actions">
+                                    @if (IsManager)
+                                    {
+                                        var acceptCss = file.ReviewStatus == FileReviewStatus.Accepted ? "active" : "";
+                                        var refuseCss = file.ReviewStatus == FileReviewStatus.Refused ? "active" : "";
+                                        var modifyCss = file.ReviewStatus == FileReviewStatus.NeedsModification ? "active" : "";
+
+                                        <button class="btn-file-action accept @acceptCss"
+                                                title="Valider ce fichier" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Accepted)">
+                                            <i class="fa-solid fa-check"></i> Accepter
+                                        </button>
+                                        <button class="btn-file-action refuse @refuseCss"
+                                                title="Refuser ce fichier" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Refused)">
+                                            <i class="fa-solid fa-xmark"></i> Refuser
+                                        </button>
+                                        <button class="btn-file-action modify @modifyCss"
+                                                title="Demander une modification" @onclick="() => OpenCommentModal(file.Id)">
+                                            <i class="fa-solid fa-pen"></i> À modifier
+                                        </button>
+                                    }
+
+                                    @if (CanEditFiles && (file.ReviewStatus == FileReviewStatus.Refused || file.ReviewStatus == FileReviewStatus.NeedsModification || file.ReviewStatus == FileReviewStatus.Pending))
+                                    {
+                                        <label class="btn-file-action replace" title="Envoyer une nouvelle version" style="cursor: pointer;">
+                                            <i class="fa-solid fa-arrows-rotate"></i> Remplacer
+                                            <InputFile OnChange="(e) => HandleReplaceFile(e, file.Id)" accept=".stl,.3mf,.dxf,.obj" style="display: none;" />
+                                        </label>
+                                        <button class="btn-file-action delete" title="Retirer ce fichier" @onclick="() => DeleteFile(file.Id)">
+                                            <i class="fa-solid fa-trash"></i> Supprimer
+                                        </button>
+                                    }
+                                </div>
+                            </div>
                         }
                     </div>
+                }
 
-                    @if (!Request.Fichiers.Any())
-                    {
-                        <p style="color: var(--text-muted); text-align: center; padding: 1rem;">Aucun fichier joint.</p>
-                    }
-                    else
-                    {
-                        <div class="files-list">
-                            @foreach (var file in Request.Fichiers.OrderBy(f => f.UploadedAt))
+                @if (IsManager && Request.Fichiers.Any(f => f.ReviewStatus != FileReviewStatus.Pending))
+                {
+                    <div class="files-footer">
+                        <button class="btn-notify"
+                                @onclick="SendNotification" disabled="@IsSendingNotification">
+                            <i class="fa-solid fa-bell"></i>
+                            Prévenir le demandeur
+                        </button>
+                        @if (!string.IsNullOrEmpty(NotificationMessage))
+                        {
+                            <span class="notify-message">@NotificationMessage</span>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Discussion -->
+            @if (IsManager || IsOwner)
+            {
+                var currentUserId = AuthState.CurrentUser?.Id;
+
+                <div class="card-clean comments-section detail-col-discussion">
+                    <div class="comments-header">
+                        <h5><i class="fa-solid fa-comments"></i> Discussion</h5>
+                    </div>
+
+                    <div class="comments-list">
+                        @if (Request.Commentaires.Any())
+                        {
+                            @foreach (var comment in Request.Commentaires.OrderBy(c => c.Date))
                             {
-                                var fileCss = GetFileStatusCss(file.ReviewStatus);
-                                var sizeLabel = GetFileSizeLabel(file.FileSize);
+                                var isMine = comment.AuteurId == currentUserId;
+                                var auteurInitials = comment.Auteur != null
+                                    ? $"{comment.Auteur.FirstName[0]}{comment.Auteur.LastName[0]}".ToUpper()
+                                    : "??";
+                                var auteurName = comment.Auteur != null
+                                    ? $"{comment.Auteur.FirstName} {comment.Auteur.LastName}"
+                                    : "Inconnu";
+                                var avatarBg = comment.AuteurId == Request.DemandeurId ? "var(--primary-blue)" : "var(--accent-magenta)";
 
-                                <div class="file-row">
-                                    <div class="file-info">
-                                        <i class="fa-solid fa-file-code" style="color: var(--primary-blue);"></i>
-                                        <div class="file-details">
-                                            <a href="@file.FilePath" target="_blank" class="file-name">@file.FileName</a>
-                                            <small>@sizeLabel — @file.UploadedAt.ToString("dd/MM HH:mm")</small>
-                                        </div>
-                                        <span class="file-status-badge @fileCss">@file.ReviewStatus.GetDisplayName()</span>
-                                    </div>
-
-                                    <div class="file-actions">
-                                        @if (IsManager)
+                                <div class="comment-item @(isMine ? "is-mine" : "is-other")">
+                                    @if (!isMine)
+                                    {
+                                        <div class="comment-avatar" style="background: @avatarBg">@auteurInitials</div>
+                                    }
+                                    <div class="comment-body">
+                                        @if (!isMine)
                                         {
-                                            var acceptCss = file.ReviewStatus == FileReviewStatus.Accepted ? "active" : "";
-                                            var refuseCss = file.ReviewStatus == FileReviewStatus.Refused ? "active" : "";
-                                            var modifyCss = file.ReviewStatus == FileReviewStatus.NeedsModification ? "active" : "";
-
-                                            <button class="btn-file-action accept @acceptCss"
-                                                    title="Valider ce fichier" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Accepted)">
-                                                <i class="fa-solid fa-check"></i> Accepter
-                                            </button>
-                                            <button class="btn-file-action refuse @refuseCss"
-                                                    title="Refuser ce fichier" @onclick="() => ReviewFile(file.Id, FileReviewStatus.Refused)">
-                                                <i class="fa-solid fa-xmark"></i> Refuser
-                                            </button>
-                                            <button class="btn-file-action modify @modifyCss"
-                                                    title="Demander une modification" @onclick="() => OpenCommentModal(file.Id)">
-                                                <i class="fa-solid fa-pen"></i> À modifier
-                                            </button>
+                                            <div class="comment-meta">
+                                                <strong>@auteurName</strong>
+                                            </div>
                                         }
-
-                                        @if (CanEditFiles && (file.ReviewStatus == FileReviewStatus.Refused || file.ReviewStatus == FileReviewStatus.NeedsModification || file.ReviewStatus == FileReviewStatus.Pending))
-                                        {
-                                            <label class="btn-file-action replace" title="Envoyer une nouvelle version" style="cursor: pointer;">
-                                                <i class="fa-solid fa-arrows-rotate"></i> Remplacer
-                                                <InputFile OnChange="(e) => HandleReplaceFile(e, file.Id)" accept=".stl,.3mf,.dxf,.obj" style="display: none;" />
-                                            </label>
-                                            <button class="btn-file-action delete" title="Retirer ce fichier" @onclick="() => DeleteFile(file.Id)">
-                                                <i class="fa-solid fa-trash"></i> Supprimer
-                                            </button>
-                                        }
+                                        <p class="comment-text">@comment.Contenu</p>
+                                        <span class="comment-date">@comment.Date.ToString("dd/MM HH:mm")</span>
                                     </div>
                                 </div>
                             }
-                        </div>
-                    }
-
-                    @if (IsManager && Request.Fichiers.Any(f => f.ReviewStatus != FileReviewStatus.Pending))
-                    {
-                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e1e8ed;">
-                            <button class="btn btn-sm btn-primary"
-                                    @onclick="SendNotification" disabled="@IsSendingNotification">
-                                <i class="fa-solid fa-bell"></i>
-                                Prévenir le demandeur
-                            </button>
-                            @if (!string.IsNullOrEmpty(NotificationMessage))
-                            {
-                                <span style="margin-left: 8px; font-size: 0.82rem; color: #117a65;">@NotificationMessage</span>
-                            }
-                        </div>
-                    }
-                </div>
-
-                <!-- Section Discussion -->
-                @if (IsManager || IsOwner)
-                {
-                    <div class="card-clean mt-3 comments-section" style="padding: 1.5rem;">
-                        <h6 style="margin: 0 0 1rem;"><i class="fa-solid fa-comments"></i> Discussion</h6>
-
-                        @if (Request.Commentaires.Any())
-                        {
-                            <div class="comments-list">
-                                @foreach (var comment in Request.Commentaires.OrderBy(c => c.Date))
-                                {
-                                    var auteurInitials = comment.Auteur != null
-                                        ? $"{comment.Auteur.FirstName[0]}{comment.Auteur.LastName[0]}".ToUpper()
-                                        : "??";
-                                    var auteurName = comment.Auteur != null
-                                        ? $"{comment.Auteur.FirstName} {comment.Auteur.LastName}"
-                                        : "Inconnu";
-
-                                    var avatarBg = comment.AuteurId == Request.DemandeurId ? "var(--primary-blue)" : "var(--accent-magenta)";
-
-                                    <div class="comment-item">
-                                        <div class="comment-avatar" style="background: @avatarBg">
-                                            @auteurInitials
-                                        </div>
-                                        <div class="comment-body">
-                                            <div class="comment-meta">
-                                                <strong>@auteurName</strong>
-                                                <span class="comment-date">@comment.Date.ToString("dd/MM/yyyy HH:mm")</span>
-                                            </div>
-                                            <p class="comment-text">@comment.Contenu</p>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
                         }
                         else
                         {
-                            <p style="color: var(--text-muted); text-align: center; padding: 0.5rem;">Aucun message pour l'instant.</p>
+                            <div class="comments-empty">
+                                <i class="fa-regular fa-comment-dots"></i>
+                                <p>Aucun message pour l'instant.</p>
+                            </div>
                         }
-
-                        <div class="comment-form">
-                            <textarea class="form-input" @bind="NewCommentText" rows="2" placeholder="Écrire un message..."></textarea>
-                            <button class="btn btn-sm btn-primary" @onclick="SendComment" disabled="@string.IsNullOrWhiteSpace(NewCommentText)">
-                                <i class="fa-solid fa-paper-plane"></i> Envoyer
-                            </button>
-                        </div>
-                    </div>
-                }
-            </div>
-
-            <!-- Sidebar info -->
-            <div class="col-md-4">
-                <div class="card-clean" style="padding: 1.5rem;">
-                    <h6>Informations</h6>
-
-                    <div class="mb-2">
-                        <small style="color: var(--text-muted);">Demandeur</small>
-                        <div><strong>@(Request.Demandeur != null ? $"{Request.Demandeur.FirstName} {Request.Demandeur.LastName}" : "—")</strong></div>
                     </div>
 
-                    <div class="mb-2">
-                        <small style="color: var(--text-muted);">Créée le</small>
-                        <div>@Request.CreatedAt.ToString("dd/MM/yyyy à HH:mm")</div>
+                    <div class="composer">
+                        <textarea class="composer-input"
+                                  @bind="NewCommentText"
+                                  @bind:event="oninput"
+                                  @onkeydown="HandleComposerKeyDown"
+                                  data-enter-submit
+                                  rows="1"
+                                  placeholder="Écrire un message…"></textarea>
+                        <button class="composer-send" @onclick="SendComment" disabled="@string.IsNullOrWhiteSpace(NewCommentText)" aria-label="Envoyer">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
                     </div>
-
-                    @if (Request.UpdatedAt.HasValue)
-                    {
-                        <div class="mb-2">
-                            <small style="color: var(--text-muted);">Mise à jour le</small>
-                            <div>@Request.UpdatedAt.Value.ToString("dd/MM/yyyy à HH:mm")</div>
-                        </div>
-                    }
-
-                    @if (Request.Assigne != null)
-                    {
-                        <div class="mb-2">
-                            <small style="color: var(--text-muted);">Assignée à</small>
-                            <div><strong>@($"{Request.Assigne.FirstName} {Request.Assigne.LastName}")</strong></div>
-                        </div>
-                    }
                 </div>
+            }
+        </div>
 
-                @if (IsManager)
+        @if (IsManager && (Request.Status == RequestStatus.Submitted || Request.Status == RequestStatus.Approved || Request.Status == RequestStatus.InProgress))
+        {
+            <div class="detail-actions-bar">
+                @if (Request.Status == RequestStatus.Submitted)
                 {
-                    <div class="card-clean mt-3" style="padding: 1.5rem;">
-                        <h6>Actions</h6>
-
-                        @if (Request.Status == RequestStatus.Submitted)
-                        {
-                            <button class="btn btn-success btn-sm w-100 mb-2" @onclick="Approve">
-                                <i class="fa-solid fa-check"></i> Approuver
-                            </button>
-                            <button class="btn btn-danger btn-sm w-100" @onclick="Reject">
-                                <i class="fa-solid fa-xmark"></i> Rejeter
-                            </button>
-                        }
-                        else if (Request.Status == RequestStatus.Approved)
-                        {
-                            <button class="btn btn-info btn-sm w-100" @onclick="Start">
-                                <i class="fa-solid fa-play"></i> Lancer
-                            </button>
-                        }
-                        else if (Request.Status == RequestStatus.InProgress)
-                        {
-                            <button class="btn btn-success btn-sm w-100" @onclick="Complete">
-                                <i class="fa-solid fa-flag-checkered"></i> Terminer
-                            </button>
-                        }
-                    </div>
+                    <button class="btn-action-pill success" @onclick="Approve">
+                        <i class="fa-solid fa-check"></i> Approuver
+                    </button>
+                    <button class="btn-action-pill danger" @onclick="Reject">
+                        <i class="fa-solid fa-xmark"></i> Rejeter
+                    </button>
+                }
+                else if (Request.Status == RequestStatus.Approved)
+                {
+                    <button class="btn-action-pill info" @onclick="Start">
+                        <i class="fa-solid fa-play"></i> Lancer
+                    </button>
+                }
+                else if (Request.Status == RequestStatus.InProgress)
+                {
+                    <button class="btn-action-pill success" @onclick="Complete">
+                        <i class="fa-solid fa-flag-checkered"></i> Terminer
+                    </button>
                 }
             </div>
-        </div>
+        }
     }
 </div>
 
-<!-- Modal commentaire -->
+<!-- Popover commentaire (compact, sans overlay) -->
 @if (ShowCommentModal)
 {
-    <div class="modal-overlay" @onclick="() => ShowCommentModal = false">
-        <div class="modal-panel" @onclick:stopPropagation="true">
-            <div class="modal-header">
-                <div class="modal-icon-circle primary">
-                    <i class="fa-solid fa-comment"></i>
-                </div>
-                <div>
-                    <h5>Commentaire</h5>
-                    <span class="modal-subtitle">Indiquer la modification demandée</span>
-                </div>
-                <button class="modal-close" @onclick="() => ShowCommentModal = false">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>Commentaire</label>
-                    <textarea class="form-input" @bind="CommentText" rows="3" placeholder="Décrivez les modifications à apporter..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-action btn-secondary" @onclick="() => ShowCommentModal = false">Annuler</button>
-                <button class="btn-action btn-primary-fill" @onclick="SubmitComment">
+    <div class="comment-popover-layer" @onclick="() => ShowCommentModal = false">
+        <div class="comment-popover" @onclick:stopPropagation="true">
+            <textarea class="comment-popover-input" @bind="CommentText" @bind:event="oninput"
+                      rows="3" placeholder="Décrivez la modification à apporter…"></textarea>
+            <div class="comment-popover-actions">
+                <button class="btn-pop cancel" @onclick="() => ShowCommentModal = false">Annuler</button>
+                <button class="btn-pop submit" @onclick="SubmitComment" disabled="@string.IsNullOrWhiteSpace(CommentText)">
                     <i class="fa-solid fa-paper-plane"></i> Envoyer
                 </button>
             </div>

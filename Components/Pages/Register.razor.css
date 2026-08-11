@@ -1,0 +1,209 @@
+/* ==========================================================================
+   Register.razor.css — Page d'inscription Crealab
+   Style scoped, cohérent avec Login.razor.css et le design system (app.css).
+   ========================================================================== */
+
+/* WRAPPER PLEIN ÉCRAN : centre la carte au milieu de la fenêtre. */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    background-color: var(--bg-body, #f4f7f9);
+    font-family: var(--font-family, 'Segoe UI', sans-serif);
+}
+
+.login-card {
+    background: var(--bg-card, #ffffff);
+    width: 100%;
+    max-width: 560px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-light, #e1e8ed);
+    overflow: hidden;
+}
+
+/* Animation d'apparition douce */
+.animate-fade-in {
+    animation: registerFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes registerFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- En-tête sombre --- */
+.login-header {
+    background: var(--text-main, #2c3e50);
+    color: white;
+    padding: 2.25rem 2rem;
+    text-align: center;
+}
+
+    .login-header h2 {
+        margin: 15px 0 5px;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .login-header p {
+        margin: 0;
+        font-size: 0.9rem;
+        opacity: 0.85;
+    }
+
+    .login-header i {
+        color: var(--accent-magenta, #d41a5f); /* Magenta Créalab */
+    }
+
+/* --- Corps du formulaire --- */
+.login-form {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+    .login-form form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+/* Ligne à deux colonnes (Prénom / Nom) */
+.flex-row {
+    gap: 16px;
+}
+
+    .flex-row .form-group {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+    .form-group label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .form-group small {
+        font-size: 0.78rem;
+        color: var(--text-muted, #95a5a6);
+    }
+
+/* --- Champs (input + select) --- */
+.form-control {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+    background-color: #f8f9fa;
+    color: var(--text-main, #2c3e50);
+    box-sizing: border-box;
+}
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-blue, #0896b5);
+        background-color: white;
+        box-shadow: 0 0 0 3px rgba(8, 150, 181, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: #adb5bd;
+    }
+
+/* Select personnalisé (Année) : on masque la flèche native et on la redessine */
+select.form-control {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2395a5a6' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+}
+
+/* --- Boutons --- */
+.btn-primary, .btn-secondary {
+    padding: 12px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.95rem;
+}
+
+.btn-primary {
+    background: var(--primary-blue, #0896b5);
+    color: white;
+    margin-top: 6px;
+}
+
+    .btn-primary:hover {
+        background: #077da0;
+    }
+
+    .btn-primary:active {
+        transform: scale(0.98);
+    }
+
+.btn-secondary {
+    background: #e1e8ed;
+    color: #495057;
+}
+
+    .btn-secondary:hover {
+        background: #cbd3da;
+    }
+
+/* --- Alerte d'erreur --- */
+.error-alert {
+    background: #fce4ec;
+    color: var(--status-error, #e74c3c);
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    border: 1px solid #fadbd8;
+}
+
+/* --- Responsive : on empile la ligne Prénom / Nom sur petit écran --- */
+@media (max-width: 480px) {
+    .login-header {
+        padding: 1.75rem 1.25rem;
+    }
+
+    .login-form {
+        padding: 1.5rem;
+    }
+
+    .flex-row {
+        flex-direction: column;
+    }
+}

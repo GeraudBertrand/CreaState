@@ -1,12 +1,14 @@
 ﻿@page "/public/contact"
 @attribute [Authorize]
 
+@inject AuthStateProvider AuthState
+
 <PageTitle>Contact - Créalab ESILV Nantes</PageTitle>
 
 <div class="main-container theme-industrial">
     <header class="public-header text-center">
         <h1>Contactez le Créalab</h1>
-        <p>Une question, un projet ou une proposition de partenariat ? Écrivez-nous !</p>
+        <p>Une question sur votre projet ou sur le fonctionnement de l'atelier ? Écrivez-nous !</p>
     </header>
 
     <div class="contact-grid">
@@ -15,17 +17,14 @@
             <h3><i class="fa-solid fa-location-dot"></i> Où nous trouver ?</h3>
             <p>
                 <strong>Créalab ESILV - Campus de Nantes</strong><br />
-                (Préciser ici le numéro de la salle ou le bâtiment)
             </p>
 
             <h3 class="mt-4"><i class="fa-solid fa-envelope"></i> Nous écrire</h3>
             <p>contact@crealab-nantes.fr</p>
 
-            <h3 class="mt-4"><i class="fa-solid fa-handshake"></i> Partenariats Entreprises</h3>
+            <h3 class="mt-4"><i class="fa-solid fa-clock"></i> Horaires d'ouverture</h3>
             <p class="partnership-text">
-                En tant qu'association étudiante de création, le Créalab est toujours à la recherche de partenaires pour nous aider à améliorer notre parc machine (Imprimantes 3D, Imprimante Résine, Découpeuse Laser, CNC) ou fournir des consommables (PLA, Résine, Bois, Composants électroniques).
-                <br /><br />
-                <em>- Le Responsable Partenariat</em>
+                L'atelier est accessible aux membres. Pour toute question technique ou demande d'accès, passez par le formulaire ci-contre.
             </p>
 
             <div class="social-links mt-4">
@@ -59,8 +58,8 @@
                     <DataAnnotationsValidator />
 
                     <div class="form-group">
-                        <label>Nom & Prénom / Entreprise</label>
-                        <InputText @bind-Value="ContactModel.Name" class="form-control" placeholder="Ex: Jean Dupont ou XLConcept" />
+                        <label>Nom & Prénom</label>
+                        <InputText @bind-Value="ContactModel.Name" class="form-control" placeholder="Ex: Jean Dupont" />
                         <ValidationMessage For="@(() => ContactModel.Name)" class="text-danger" />
                     </div>
 
@@ -76,7 +75,6 @@
                             <option value="">-- Sélectionnez un sujet --</option>
                             <option value="Technique">Demande concernant un aspect technique</option>
                             <option value="Adhesion">Rejoindre l'association</option>
-                            <option value="Partenariat">Proposition de partenariat (Sponsoring/Matériel)</option>
                             <option value="Autre">Autre demande</option>
                         </InputSelect>
                         <ValidationMessage For="@(() => ContactModel.Subject)" class="text-danger" />
@@ -84,7 +82,7 @@
 
                     <div class="form-group">
                         <label>Votre Message</label>
-                        <InputTextArea @bind-Value="ContactModel.Message" rows="1" class="form-control" placeholder="Détaillez votre projet ou votre proposition ici..." />
+                        <InputTextArea @bind-Value="ContactModel.Message" rows="1" class="form-control" placeholder="Détaillez votre question ou votre projet ici..." />
                         <ValidationMessage For="@(() => ContactModel.Message)" class="text-danger" />
                     </div>
 
@@ -98,15 +96,35 @@
 </div>
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     // Le modèle de données lié au formulaire
     private ContactFormModel ContactModel = new();
     private bool IsSubmitted = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask != null)
+            await AuthState.EnsureLoadedAsync(await AuthStateTask);
+    }
 
     private void HandleValidSubmit()
     {
         // --- SIMULATION D'ENVOI D'EMAIL ---
         // Dans le futur, tu utiliseras ici un service d'envoi d'email (ex: MailKit, SendGrid, ou l'API de Microsoft Graph)
         Console.WriteLine($"[CONTACT] Nouveau message de {ContactModel.Name} ({ContactModel.Email}) - Sujet: {ContactModel.Subject}");
+
+        var currentUser = AuthState.CurrentUser;
+        if (currentUser != null)
+        {
+
+            ContactModel.Email = currentUser.Email ?? "";
+            ContactModel.Name = $"{currentUser.FirstName} {currentUser.LastName}";
+        }
+        else
+        {
+            return;
+        }
 
         // On affiche le message de succès
         IsSubmitted = true;

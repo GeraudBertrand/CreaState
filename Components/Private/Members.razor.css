@@ -1,53 +1,19 @@
-﻿/* --- Header --- */
+/* Members — styles génériques (page-header, filter-bar/filters-bar,
+   search-box) centralisés dans wwwroot/app.css. */
+
 .page-header {
-    display: flex;
-    justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 2rem;
     flex-wrap: wrap;
     gap: 20px;
 }
 
-/* --- Filtres & Recherche --- */
-.filters-bar {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.search-box {
-    position: relative;
-    width: 250px;
-}
-
-    .search-box i {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: var(--text-muted, #95a5a6);
-    }
-
-    .search-box input {
-        width: 100%;
-        padding: 10px 10px 10px 35px;
-        border: 1px solid var(--border-color, #e1e8ed);
-        border-radius: 8px;
-        font-family: inherit;
-        outline: none;
-    }
-
-        .search-box input:focus {
-            border-color: var(--primary-blue, #0896b5);
-        }
-
+/* --- Toggle de filtres (présents/absents) --- */
 .filter-buttons {
     display: flex;
     background: white;
     padding: 4px;
     border-radius: 8px;
-    border: 1px solid var(--border-color, #e1e8ed);
+    border: 1px solid var(--border-light);
 }
 
 .filter-btn {
@@ -56,7 +22,7 @@
     padding: 6px 16px;
     border-radius: 6px;
     font-weight: 600;
-    color: var(--text-muted, #95a5a6);
+    color: var(--text-muted);
     cursor: pointer;
     transition: all 0.2s;
     display: flex;
@@ -65,23 +31,22 @@
 }
 
     .filter-btn:hover {
-        color: var(--primary-blue, #0896b5);
+        color: var(--primary-blue);
     }
 
     .filter-btn.active {
-        background-color: var(--bg-app, #f4f7f9);
-        color: var(--text-main, #2c3e50);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        background-color: var(--bg-body);
+        color: var(--text-main);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
 .dot-present {
     width: 8px;
     height: 8px;
-    background-color: var(--status-success, #2ecc71);
+    background-color: var(--status-success);
     border-radius: 50%;
 }
 
-/* --- Grille --- */
 .members-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

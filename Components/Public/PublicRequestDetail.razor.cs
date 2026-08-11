@@ -2,6 +2,7 @@ using CreaState.Models;
 using CreaState.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace CreaState.Components.Public;
 
@@ -116,6 +117,14 @@ public partial class PublicRequestDetail
         await RequestService.AddCommentAsync(Request.Id, user.Id, NewCommentText.Trim());
         NewCommentText = "";
         Request = await RequestService.GetRequestByIdAsync(Id);
+    }
+
+    private async Task HandleComposerKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendComment();
+        }
     }
 
     private async Task HandleAddFile(InputFileChangeEventArgs e)

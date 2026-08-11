@@ -98,7 +98,7 @@
                                     <span class="file-status-badge @fileCss">@file.ReviewStatus.GetDisplayName()</span>
                                 </div>
 
-                                @if (CanEditFiles && (file.ReviewStatus == FileReviewStatus.Refused || file.ReviewStatus == FileReviewStatus.NeedsModification || file.ReviewStatus == FileReviewStatus.Pending))
+                                @if (CanEditFiles && (file.ReviewStatus == FileReviewStatus.NeedsModification || file.ReviewStatus == FileReviewStatus.Pending))
                                 {
                                     <div class="file-actions">
                                         <label class="btn-file-action replace" title="Envoyer une nouvelle version" style="cursor: pointer;">
@@ -118,48 +118,62 @@
 
                 <!-- Discussion -->
                 <div class="card-clean comments-section detail-col-discussion">
-                <h5><i class="fa-solid fa-comments"></i> Discussion</h5>
+                    <div class="comments-header">
+                        <h5><i class="fa-solid fa-comments"></i> Discussion</h5>
+                    </div>
 
-                @if (Request.Commentaires.Any())
-                {
                     <div class="comments-list">
-                        @foreach (var comment in Request.Commentaires.OrderBy(c => c.Date))
+                        @if (Request.Commentaires.Any())
                         {
-                            var auteurInitials = comment.Auteur != null
-                                ? $"{comment.Auteur.FirstName[0]}{comment.Auteur.LastName[0]}".ToUpper()
-                                : "??";
-                            var auteurName = comment.Auteur != null
-                                ? $"{comment.Auteur.FirstName} {comment.Auteur.LastName}"
-                                : "Inconnu";
+                            @foreach (var comment in Request.Commentaires.OrderBy(c => c.Date))
+                            {
+                                var isMine = comment.AuteurId == Request.DemandeurId;
+                                var auteurInitials = comment.Auteur != null
+                                    ? $"{comment.Auteur.FirstName[0]}{comment.Auteur.LastName[0]}".ToUpper()
+                                    : "??";
+                                var auteurName = comment.Auteur != null
+                                    ? $"{comment.Auteur.FirstName} {comment.Auteur.LastName}"
+                                    : "Inconnu";
 
-                            var avatarBg = comment.AuteurId == Request.DemandeurId ? "var(--primary-blue)" : "var(--accent-magenta)";
-
-                            <div class="comment-item">
-                                <div class="comment-avatar" style="background: @avatarBg">
-                                    @auteurInitials
-                                </div>
-                                <div class="comment-body">
-                                    <div class="comment-meta">
-                                        <strong>@auteurName</strong>
-                                        <span class="comment-date">@comment.Date.ToString("dd/MM/yyyy HH:mm")</span>
+                                <div class="comment-item @(isMine ? "is-mine" : "is-other")">
+                                    @if (!isMine)
+                                    {
+                                        <div class="comment-avatar">@auteurInitials</div>
+                                    }
+                                    <div class="comment-body">
+                                        @if (!isMine)
+                                        {
+                                            <div class="comment-meta">
+                                                <strong>@auteurName</strong>
+                                            </div>
+                                        }
+                                        <p class="comment-text">@comment.Contenu</p>
+                                        <span class="comment-date">@comment.Date.ToString("dd/MM HH:mm")</span>
                                     </div>
-                                    <p class="comment-text">@comment.Contenu</p>
                                 </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="comments-empty">
+                                <i class="fa-regular fa-comment-dots"></i>
+                                <p>Aucun message pour l'instant.</p>
                             </div>
                         }
                     </div>
-                }
-                else
-                {
-                    <p class="text-muted-center">Aucun message pour l'instant.</p>
-                }
 
-                <div class="comment-form">
-                    <textarea class="form-input" @bind="NewCommentText" rows="2" placeholder="Écrire un message..."></textarea>
-                    <button class="btn-primary btn-send" @onclick="SendComment" disabled="@string.IsNullOrWhiteSpace(NewCommentText)">
-                        <i class="fa-solid fa-paper-plane"></i> Envoyer
-                    </button>
-                </div>
+                    <div class="composer">
+                        <textarea class="composer-input"
+                                  @bind="NewCommentText"
+                                  @bind:event="oninput"
+                                  @onkeydown="HandleComposerKeyDown"
+                                  data-enter-submit
+                                  rows="1"
+                                  placeholder="Écrire un message…"></textarea>
+                        <button class="composer-send" @onclick="SendComment" disabled="@string.IsNullOrWhiteSpace(NewCommentText)" aria-label="Envoyer">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         }

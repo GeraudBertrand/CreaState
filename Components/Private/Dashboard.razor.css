@@ -1,4 +1,7 @@
-﻿.kpi-row {
+/* Dashboard — widget-card et widget-title sont génériques (app.css).
+   Ici : KPI cards et layout 2fr/1fr propres au dashboard. */
+
+.kpi-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
@@ -25,20 +28,9 @@
     font-size: 1.5rem;
 }
 
-.kpi-blue {
-    background: #e0f7fa;
-    color: var(--primary-blue);
-}
-
-.kpi-magenta {
-    background: #fce4ec;
-    color: var(--accent-magenta);
-}
-
-.kpi-orange {
-    background: #fff3e0;
-    color: var(--accent-orange);
-}
+    .kpi-icon.kpi-blue    { background: #e0f7fa; color: var(--primary-blue); }
+    .kpi-icon.kpi-magenta { background: #fce4ec; color: var(--accent-magenta); }
+    .kpi-icon.kpi-orange  { background: #fff3e0; color: var(--accent-orange); }
 
 .kpi-content h3 {
     font-size: 1.8rem;
@@ -51,35 +43,16 @@
     margin: 0;
 }
 
-/* --- DASHBOARD WIDGETS (NOUVEAU) --- */
-
 .dashboard-layout {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 20px;
 }
 
-.widget-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid var(--border-light);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-    margin-bottom: 20px;
-}
-
+/* Override : dashboard ajoute un margin-bottom et un layout split au widget-title */
 .widget-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    color: var(--text-main);
+    margin-bottom: 1rem;
 }
-
-    .widget-title i {
-        color: var(--primary-blue);
-        margin-right: 8px;
-    }
-

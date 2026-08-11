@@ -17,6 +17,13 @@
 <body>
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
+    <script>
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey && e.target.matches('[data-enter-submit]')) {
+                e.preventDefault();
+            }
+        }, true);
+    </script>
 </body>
 
 </html>

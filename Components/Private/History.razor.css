@@ -1,91 +1,13 @@
-/* --- Filter Bar --- */
-.filter-bar {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-}
+/* History — styles génériques (filter-bar, stats, table, status-badge,
+   empty-state) centralisés dans wwwroot/app.css. */
 
 .filter-group {
     min-width: 180px;
 }
 
-/* --- Empty State --- */
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: var(--text-muted, #95a5a6);
-}
-
-    .empty-state i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-        display: block;
-    }
-
-/* --- Stats --- */
-.stats-summary {
-    display: flex;
-    gap: 20px;
-}
-
-.stat-box {
-    background: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: 1px solid var(--border-color, #e1e8ed);
-    text-align: center;
-}
-
-.stat-value {
-    display: block;
-    font-weight: 800;
-    font-size: 1.2rem;
-    color: var(--primary-blue, #0896b5);
-}
-
-.stat-label {
-    font-size: 0.75rem;
-    color: var(--text-muted, #95a5a6);
-    text-transform: uppercase;
-}
-
-/* --- Table --- */
-.table-container {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-    border: 1px solid var(--border-color, #e1e8ed);
-    overflow: hidden;
-}
-
-.table-scroll {
-    overflow-x: auto;
-}
-
 .history-table {
-    width: 100%;
-    border-collapse: collapse;
     min-width: 650px;
 }
-
-    .history-table th {
-        text-align: left;
-        padding: 1rem;
-        background-color: var(--bg-app, #f8f9fa);
-        color: var(--text-muted, #95a5a6);
-        font-weight: 600;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        border-bottom: 1px solid var(--border-color, #e1e8ed);
-    }
-
-    .history-table td {
-        padding: 1rem;
-        border-bottom: 1px solid var(--border-color, #f1f3f5);
-        color: var(--text-main, #2c3e50);
-        font-size: 0.9rem;
-    }
 
 .job-row:last-child td {
     border-bottom: none;
@@ -95,7 +17,6 @@
     background-color: #f8f9fa;
 }
 
-/* --- File Cell --- */
 .file-cell {
     display: flex;
     align-items: center;
@@ -103,38 +24,10 @@
 }
 
 .file-icon {
-    color: var(--text-muted, #95a5a6);
+    color: var(--text-muted);
 }
 
-/* --- Weight Cell --- */
 .weight-cell {
     font-family: monospace;
     font-weight: 600;
-}
-
-/* --- Status Badges --- */
-.status-badge {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    text-transform: uppercase;
-}
-
-.status-success {
-    background-color: #e8f8f5;
-    color: #2ecc71;
-}
-
-.status-failed {
-    background-color: #fce4ec;
-    color: #e74c3c;
-}
-
-.status-cancelled {
-    background-color: #f1f3f5;
-    color: #95a5a6;
 }
