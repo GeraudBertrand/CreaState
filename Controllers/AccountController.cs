@@ -1,5 +1,6 @@
 using CreaState.Models;
 using CreaState.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,6 +13,7 @@ namespace CreaState.Controllers
     /// </summary>
     [Route("account")]
     [IgnoreAntiforgeryToken]
+    [AllowAnonymous]
     public class AccountController : Controller
     {
         private readonly AuthService _authService;

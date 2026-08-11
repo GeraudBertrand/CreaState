@@ -42,7 +42,7 @@
             <!-- Alertes stock bas -->
             @if (LowStockItems.Any())
             {
-                <div class="widget-card" style="border-left: 4px solid var(--accent-orange);">
+                <div class="widget-card" style="border-left: 4px solid var(--accent-orange); margin-bottom: 1rem;">
                     <div class="widget-title">
                         <span><i class="fa-solid fa-boxes-stacked"></i> Stock bas</span>
                         <a href="private/inventory" style="font-size: 0.8rem; color: var(--primary-blue);">Voir inventaire</a>
@@ -60,7 +60,9 @@
             <div class="widget-card">
                 <div class="widget-title">
                     <span><i class="fa-solid fa-graduation-cap"></i> Formations à venir</span>
-                    <a href="#" style="font-size: 0.8rem; color: var(--primary-blue);">Voir tout</a>
+                    <AuthorizeView Policy="ManageFormations">
+                        <a href="private/formations" style="font-size: 0.8rem; color: var(--primary-blue);">Gérer</a>
+                    </AuthorizeView>
                 </div>
 
                 @if(FormationsList != null && FormationsList.Count != 0){
@@ -84,6 +86,19 @@
             {
                 <EventWidget Event="@NextEvent" />
             }
+
+            <AuthorizeView Policy="ManageEvents">
+                <div class="widget-card" style="margin-bottom: 1rem;">
+                    <div class="widget-title">
+                        <span><i class="fa-solid fa-calendar-days"></i> Événements</span>
+                        <a href="private/events" style="font-size: 0.8rem; color: var(--primary-blue);">Gérer</a>
+                    </div>
+                    <div style="text-align: center; padding: 0.5rem;">
+                        <div style="font-size: 1.6rem; font-weight: 700; color: var(--primary-blue);">@UpcomingEventCount</div>
+                        <p style="color: var(--text-muted); margin: 0; font-size: 0.85rem;">événement(s) à venir</p>
+                    </div>
+                </div>
+            </AuthorizeView>
 
             <!-- Demandes en attente -->
             @if (PendingRequestCount > 0)
@@ -129,6 +144,7 @@
     private int TotalPrinterCount;
     private int LowStockCount;
     private int PendingRequestCount;
+    private int UpcomingEventCount;
 
     // Data lists
     private List<Formation>? FormationsList;
@@ -155,17 +171,15 @@
         LowStockItems = await InventoryService.GetLowStockItemsAsync();
         LowStockCount = LowStockItems.Count;
 
-        // Formations, Événements depuis BDD
-        FormationsList = await Db.Formations.OrderBy(f => f.Date).Take(4).ToListAsync();
+        // Formations, Événements depuis BDD (données live)
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        FormationsList = await Db.Formations
+            .Include(f => f.Instructeur)
+            .Where(f => f.Date >= today)
+            .OrderBy(f => f.Date).ThenBy(f => f.StartTime)
+            .Take(4)
+            .ToListAsync();
         Events = await Db.Evenements.OrderBy(e => e.Date).ToListAsync();
-
-        #if DEBUG
-        if (MemberCount <= 1) MemberCount = 12;
-        if (PendingRequestCount == 0) PendingRequestCount = 3;
-        if (LowStockItems.Count == 0) LoadMockLowStock();
-        if (FormationsList.Count == 0) LoadMockFormations();
-        if (Events == null || Events.Count == 0) LoadMockEvents();
-        #endif
 
         GetNextEvent();
     }
@@ -174,38 +188,13 @@
     {
         if(Events != null && Events.Count != 0)
         {
-            NextEvent = Events
-            .Where(e => (e.Date.Date - DateTime.Now.Date).Days >= 0)
-            .OrderBy(e => e.Date)
-            .FirstOrDefault();
+            var upcoming = Events
+                .Where(e => (e.Date.Date - DateTime.Now.Date).Days >= 0)
+                .OrderBy(e => e.Date)
+                .ToList();
+
+            NextEvent = upcoming.FirstOrDefault();
+            UpcomingEventCount = upcoming.Count;
         }
-    }
-
-    // Fallback mock data
-    private void LoadMockLowStock()
-    {
-        LowStockItems = new List<Consommable>
-        {
-            new() { Id = 2, Type = "PLA", CouleurNom = "Blanc", CouleurHex = "#ffffff", Quantite = 150, Seuil = 200 },
-            new() { Id = 4, Type = "ABS", CouleurNom = "Rouge", CouleurHex = "#e74c3c", Quantite = 90, Seuil = 150 },
-        };
-        LowStockCount = LowStockItems.Count;
-    }
-
-    private void LoadMockFormations()
-    {
-        FormationsList = new List<Formation>
-        {
-            new() { Id = 1, Titre = "Initiation Impression 3D (FDM)", Description = "Apprenez les bases du tranchage et lancez votre première impression.", Date = DateOnly.FromDateTime(DateTime.Now.AddDays(7)), StartTime = new TimeOnly(14, 00), Duration = TimeSpan.FromHours(2) },
-            new() { Id = 2, Titre = "Sécurité Découpeuse Laser", Description = "Formation obligatoire pour utiliser la Trotec en autonomie.", Date = DateOnly.FromDateTime(DateTime.Now.AddDays(14)), StartTime = new TimeOnly(10, 00), Duration = TimeSpan.FromHours(2) },
-        };
-    }
-
-    private void LoadMockEvents()
-    {
-        Events = new List<Evenement>
-        {
-            new() { Id = 1, Title = "Prochaine réunion Créalab", Description = "Ordre du jour à définir.", Date = DateTime.Now.AddDays(7), Icone = "fa-calendar-day", Location = "Fablab" }
-        };
     }
 }

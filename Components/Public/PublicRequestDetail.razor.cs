@@ -27,56 +27,11 @@ public partial class PublicRequestDetail
         var user = AuthState.CurrentUser;
         var request = await RequestService.GetRequestByIdAsync(Id);
 
-        #if DEBUG
-        if (request == null) request = LoadMockRequest();
-        #endif
-
         if (request != null && user != null && request.DemandeurId == user.Id)
         {
             Request = request;
         }
     }
-
-    #if DEBUG
-    private Requete LoadMockRequest()
-    {
-        var mockUser = new Membre
-        {
-            Id = 16, FirstName = "Nathan", LastName = "Simon",
-            Email = "nathan.simon@edu.devinci.fr",
-            UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }]
-        };
-        var mockManager = new Membre
-        {
-            Id = 12, FirstName = "Hugo", LastName = "Petit",
-            Email = "hugo.petit@edu.devinci.fr",
-            UserRoles = [new AppUserRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }]
-        };
-
-        return new Requete
-        {
-            Id = Id,
-            Type = RequestType.FDM,
-            Title = "Support de téléphone personnalisé",
-            Description = "Impression d'un support ajustable en PLA noir, avec angle réglable et passage pour câble de charge.",
-            Status = RequestStatus.Submitted,
-            DemandeurId = 16,
-            Demandeur = mockUser,
-            CreatedAt = DateTime.UtcNow.AddDays(-2),
-            Fichiers = new List<RequeteFichier>
-            {
-                new() { Id = 1, RequeteId = Id, FileName = "support_base.stl", FilePath = "#", FileSize = 245000, UploadedAt = DateTime.UtcNow.AddDays(-2), ReviewStatus = FileReviewStatus.Accepted },
-                new() { Id = 2, RequeteId = Id, FileName = "support_bras.stl", FilePath = "#", FileSize = 180000, UploadedAt = DateTime.UtcNow.AddDays(-2), ReviewStatus = FileReviewStatus.Refused },
-                new() { Id = 3, RequeteId = Id, FileName = "clip_cable.3mf", FilePath = "#", FileSize = 52000, UploadedAt = DateTime.UtcNow.AddDays(-1), ReviewStatus = FileReviewStatus.Pending },
-            },
-            Commentaires = new List<RequeteCommentaire>
-            {
-                new() { Id = 1, RequeteId = Id, AuteurId = 12, Auteur = mockManager, Contenu = "Le fichier support_bras.stl a une épaisseur trop fine au niveau de la charnière.", Date = DateTime.UtcNow.AddDays(-1).AddHours(-3) },
-                new() { Id = 2, RequeteId = Id, AuteurId = 16, Auteur = mockUser, Contenu = "D'accord, je corrige ça ce soir et je renvoie le fichier. Merci pour le retour !", Date = DateTime.UtcNow.AddDays(-1).AddHours(-1) },
-            }
-        };
-    }
-    #endif
 
     internal static string GetStatusCssClass(RequestStatus s) => s switch
     {

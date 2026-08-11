@@ -1,6 +1,6 @@
 @page "/private/requests/{Id:int}"
 @layout PrivateLayout
-@attribute [Authorize(Policy = "PrivateAccess")]
+@attribute [Authorize(Policy = "ManageRequests")]
 
 
 <PageTitle>Demande #@Id - Créalab</PageTitle>

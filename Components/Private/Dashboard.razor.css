@@ -45,9 +45,13 @@
 
 .dashboard-layout {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
+
+    .dashboard-layout .col-left {
+        grid-column: span 2 / span 2;
+    }
 
 /* Override : dashboard ajoute un margin-bottom et un layout split au widget-title */
 .widget-title {

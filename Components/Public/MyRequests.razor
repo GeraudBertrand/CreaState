@@ -78,10 +78,6 @@
         {
             Requests = await RequestService.GetRequestsForUserAsync(user.Id);
         }
-
-        #if DEBUG
-        if (Requests.Count == 0) LoadMockRequests();
-        #endif
     }
 
     private void GoToDetail(int id) => NavManager.NavigateTo($"/public/my-requests/{id}");
@@ -98,49 +94,4 @@
         _ => ""
     };
 
-    #if DEBUG
-    private void LoadMockRequests()
-    {
-        var mockUser = new Membre { Id = 16, FirstName = "Nathan", LastName = "Simon", Email = "nathan.simon@edu.devinci.fr", UserRoles = [new AppUserRole { RoleId = 2, Role = new Role { Id = 2, DisplayName = "Membre" } }] };
-
-        Requests = new List<Requete>
-        {
-            new()
-            {
-                Id = 1, Type = RequestType.FDM, Context = RequestContext.Personnel, Title = "Support de téléphone personnalisé",
-                Description = "Support ajustable en PLA noir", Status = RequestStatus.Submitted,
-                DemandeurId = 16, Demandeur = mockUser,
-                CreatedAt = DateTime.UtcNow.AddDays(-2),
-                Fichiers = new List<RequeteFichier>
-                {
-                    new() { Id = 1, FileName = "support_base.stl", FileSize = 245000, ReviewStatus = FileReviewStatus.Accepted },
-                    new() { Id = 2, FileName = "support_bras.stl", FileSize = 180000, ReviewStatus = FileReviewStatus.Refused },
-                    new() { Id = 3, FileName = "clip_cable.3mf", FileSize = 52000, ReviewStatus = FileReviewStatus.Pending },
-                }
-            },
-            new()
-            {
-                Id = 2, Type = RequestType.SLA, Context = RequestContext.Projet, Title = "Figurine détaillée",
-                Description = "Figurine en résine haute précision", Status = RequestStatus.Approved,
-                DemandeurId = 16, Demandeur = mockUser,
-                CreatedAt = DateTime.UtcNow.AddDays(-5),
-                Fichiers = new List<RequeteFichier>
-                {
-                    new() { Id = 4, FileName = "figurine_v3.stl", FileSize = 820000, ReviewStatus = FileReviewStatus.Accepted },
-                }
-            },
-            new()
-            {
-                Id = 3, Type = RequestType.Laser, Context = RequestContext.Association, Title = "Plaque signalétique bureau",
-                Description = "Découpe laser sur bois 3mm", Status = RequestStatus.Completed,
-                DemandeurId = 16, Demandeur = mockUser,
-                CreatedAt = DateTime.UtcNow.AddDays(-15),
-                Fichiers = new List<RequeteFichier>
-                {
-                    new() { Id = 5, FileName = "plaque.dxf", FileSize = 34000, ReviewStatus = FileReviewStatus.Accepted },
-                }
-            },
-        };
-    }
-    #endif
 }

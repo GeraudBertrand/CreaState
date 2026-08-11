@@ -1,0 +1,296 @@
+@page "/private/formations"
+@layout PrivateLayout
+@attribute [Authorize(Policy = "ManageFormations")]
+
+@using Microsoft.EntityFrameworkCore
+@inject Data.AppDbContext Db
+@inject MemberService MemberService
+@inject PageHeaderService HeaderService
+
+<PageTitle>Créalab - Formations</PageTitle>
+
+<div class="main-container theme-industrial">
+    <div class="section-card">
+        <div class="card-header">
+            <h3><i class="fa-solid fa-chalkboard-user"></i> Formations</h3>
+            <span class="count-label">@FormationList.Count formation(s)</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(SuccessMessage))
+        {
+            <div class="toast-success">
+                <i class="fa-solid fa-check-circle"></i> @SuccessMessage
+            </div>
+        }
+
+        <!-- Formulaire de création -->
+        <div class="formation-form">
+            <h5><i class="fa-solid fa-plus-circle"></i> Créer une formation</h5>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Titre <span class="required">*</span></label>
+                    <input class="form-input" @bind="NewFormation.Titre" placeholder="Ex: Initiation à l'impression 3D" />
+                </div>
+
+                <!-- Searchbox instructeur -->
+                <div class="form-group">
+                    <label>Instructeur <span class="required">*</span></label>
+                    <div class="instructor-search">
+                        <div class="instructor-input-wrap">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input class="form-input instructor-input"
+                                   placeholder="Rechercher un membre..."
+                                   value="@InstructorSearch"
+                                   @oninput="OnInstructorInput"
+                                   @onfocus="() => ShowDropdown = true"
+                                   @onblur="() => ShowDropdown = false" />
+                            @if (SelectedInstructor != null)
+                            {
+                                <button type="button" class="instructor-clear" @onclick="ClearInstructor" title="Effacer">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            }
+                        </div>
+
+                        @if (ShowDropdown && FilteredInstructors.Any())
+                        {
+                            <ul class="instructor-dropdown">
+                                @foreach (var m in FilteredInstructors)
+                                {
+                                    <li class="instructor-option" @onmousedown:preventDefault="true" @onclick="() => SelectInstructor(m)">
+                                        <div class="instructor-avatar">@Initials(m)</div>
+                                        <div class="instructor-meta">
+                                            <strong>@m.FirstName @m.LastName</strong>
+                                            <small>@m.Email</small>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else if (ShowDropdown && !string.IsNullOrWhiteSpace(InstructorSearch) && SelectedInstructor == null)
+                        {
+                            <ul class="instructor-dropdown">
+                                <li class="instructor-empty">Aucun membre trouvé</li>
+                            </ul>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row form-row-3">
+                <div class="form-group">
+                    <label>Date <span class="required">*</span></label>
+                    <input type="date" class="form-input" @bind="NewFormationDate" />
+                </div>
+                <div class="form-group">
+                    <label>Heure de début <span class="required">*</span></label>
+                    <input type="time" class="form-input" @bind="NewFormationTime" />
+                </div>
+                <div class="form-group">
+                    <label>Durée (minutes)</label>
+                    <input type="number" min="15" step="15" class="form-input" @bind="DurationMinutes" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Places maximum</label>
+                    <input type="number" min="1" class="form-input" @bind="NewFormation.MaxParticipants" />
+                </div>
+                <div class="form-group"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea class="form-textarea" rows="2" @bind="NewFormation.Description"
+                          placeholder="Contenu de la formation, prérequis..."></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-primary" @onclick="CreateFormation" disabled="@(!CanCreate)">
+                    <i class="fa-solid fa-plus"></i> Créer la formation
+                </button>
+            </div>
+        </div>
+
+        <!-- Liste des formations -->
+        @if (FormationList.Any())
+        {
+            <div class="formations-list">
+                <h5 class="list-title">Formations planifiées</h5>
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Formation</th>
+                                <th>Instructeur</th>
+                                <th>Date</th>
+                                <th>Places</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in FormationList)
+                            {
+                                var isPast = f.Date < DateOnly.FromDateTime(DateTime.Now);
+
+                                <tr style="@(isPast ? "opacity: 0.5;" : "")">
+                                    <td>
+                                        <div class="cell-title">
+                                            <strong>@f.Titre</strong>
+                                            @if (f.Duration > TimeSpan.Zero)
+                                            {
+                                                <small><i class="fa-regular fa-clock"></i> @FormatDuration(f.Duration)</small>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (f.Instructeur != null)
+                                        {
+                                            <div class="instructor-cell">
+                                                <div class="instructor-avatar sm">@Initials(f.Instructeur)</div>
+                                                <span>@f.Instructeur.FirstName @f.Instructeur.LastName</span>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td class="nowrap">
+                                        @f.Date.ToString("dd/MM/yyyy") à @f.StartTime.ToString("HH:mm")
+                                    </td>
+                                    <td>@f.MaxParticipants</td>
+                                    <td>
+                                        <button class="btn-icon danger" title="Supprimer" @onclick="() => DeleteFormation(f)">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <p>Aucune formation planifiée</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Formation> FormationList = new();
+    private List<Membre> AllMembers = new();
+
+    private Formation NewFormation = new();
+    private DateOnly NewFormationDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7));
+    private TimeOnly NewFormationTime = new(14, 0);
+    private int DurationMinutes = 90;
+    private string? SuccessMessage;
+
+    // --- Searchbox instructeur ---
+    private string InstructorSearch = "";
+    private Membre? SelectedInstructor;
+    private bool ShowDropdown;
+
+    private IEnumerable<Membre> FilteredInstructors =>
+        (string.IsNullOrWhiteSpace(InstructorSearch)
+            ? AllMembers
+            : AllMembers.Where(m =>
+                $"{m.FirstName} {m.LastName}".Contains(InstructorSearch, StringComparison.OrdinalIgnoreCase)
+                || (m.Email ?? "").Contains(InstructorSearch, StringComparison.OrdinalIgnoreCase)))
+        .Take(8);
+
+    private bool CanCreate =>
+        !string.IsNullOrWhiteSpace(NewFormation.Titre) && SelectedInstructor != null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        HeaderService.SetTitle("Formations", "Créer et gérer les formations du fablab");
+        AllMembers = await MemberService.GetAllMembersAsync();
+        await LoadFormations();
+    }
+
+    private async Task LoadFormations()
+    {
+        FormationList = await Db.Formations
+            .Include(f => f.Instructeur)
+            .OrderBy(f => f.Date).ThenBy(f => f.StartTime)
+            .ToListAsync();
+    }
+
+    private void OnInstructorInput(ChangeEventArgs e)
+    {
+        InstructorSearch = e.Value?.ToString() ?? "";
+        SelectedInstructor = null; // toute frappe annule la sélection en cours
+        ShowDropdown = true;
+    }
+
+    private void SelectInstructor(Membre m)
+    {
+        SelectedInstructor = m;
+        NewFormation.InstructeurId = m.Id;
+        InstructorSearch = $"{m.FirstName} {m.LastName}";
+        ShowDropdown = false;
+    }
+
+    private void ClearInstructor()
+    {
+        SelectedInstructor = null;
+        NewFormation.InstructeurId = 0;
+        InstructorSearch = "";
+        ShowDropdown = false;
+    }
+
+    private async Task CreateFormation()
+    {
+        if (!CanCreate) return;
+
+        NewFormation.Date = NewFormationDate;
+        NewFormation.StartTime = NewFormationTime;
+        NewFormation.Duration = TimeSpan.FromMinutes(DurationMinutes);
+
+        Db.Formations.Add(NewFormation);
+        await Db.SaveChangesAsync();
+
+        SuccessMessage = $"Formation \"{NewFormation.Titre}\" créée pour le {NewFormationDate:dd/MM/yyyy}.";
+
+        // Réinitialisation du formulaire
+        NewFormation = new Formation();
+        NewFormationDate = DateOnly.FromDateTime(DateTime.Now.AddDays(7));
+        NewFormationTime = new TimeOnly(14, 0);
+        DurationMinutes = 90;
+        ClearInstructor();
+
+        await LoadFormations();
+    }
+
+    private async Task DeleteFormation(Formation f)
+    {
+        Db.Formations.Remove(f);
+        await Db.SaveChangesAsync();
+        SuccessMessage = $"Formation \"{f.Titre}\" supprimée.";
+        await LoadFormations();
+    }
+
+    private static string Initials(Membre m)
+    {
+        var fi = string.IsNullOrEmpty(m.FirstName) ? "" : m.FirstName[..1];
+        var li = string.IsNullOrEmpty(m.LastName) ? "" : m.LastName[..1];
+        return (fi + li).ToUpper();
+    }
+
+    private static string FormatDuration(TimeSpan d)
+    {
+        if (d.TotalMinutes < 60) return $"{(int)d.TotalMinutes} min";
+        var h = (int)d.TotalHours;
+        var min = d.Minutes;
+        return min == 0 ? $"{h}h" : $"{h}h{min:D2}";
+    }
+}

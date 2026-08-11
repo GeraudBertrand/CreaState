@@ -63,7 +63,27 @@ body {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    padding-left: 1rem;
 }
+
+/* La liste de liens de la sidebar privée scrolle verticalement si trop d'entrées. */
+#private-navmenu {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: #d8dfe4 transparent;
+}
+
+    #private-navmenu::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #private-navmenu::-webkit-scrollbar-thumb {
+        background: #d8dfe4;
+        border-radius: 3px;
+    }
 
 .nav-item {
     padding: 0.8rem 1rem;
@@ -228,7 +248,8 @@ body {
     }
 
 .form-input,
-.form-control {
+.form-control,
+.form-textarea {
     padding: 10px 12px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
@@ -241,7 +262,8 @@ body {
 }
 
     .form-input:focus,
-    .form-control:focus {
+    .form-control:focus,
+    .form-textarea:focus {
         outline: none;
         border-color: var(--primary-blue);
         background-color: white;

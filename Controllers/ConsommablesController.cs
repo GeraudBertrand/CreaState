@@ -2,12 +2,14 @@ using CreaState.DTOs.Consommables;
 using CreaState.Mapping;
 using CreaState.Models;
 using CreaState.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CreaState.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "ManageInventory")]
     public class ConsommablesController : ControllerBase
     {
         private readonly InventoryService _inventoryService;

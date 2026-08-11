@@ -3,12 +3,14 @@ using CreaState.Mapping;
 using CreaState.Models;
 using CreaState.Repositories.Interfaces;
 using CreaState.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CreaState.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "ViewPrinters")]
     public class PrintersController : ControllerBase
     {
         private readonly IPrinterRepository _printerRepo;

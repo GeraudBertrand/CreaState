@@ -2,12 +2,14 @@ using CreaState.DTOs.Formations;
 using CreaState.Mapping;
 using CreaState.Models;
 using CreaState.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CreaState.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class FormationsController : ControllerBase
     {
         private readonly IFormationRepository _formationRepo;
@@ -40,6 +42,7 @@ namespace CreaState.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "ManageFormations")]
         public async Task<ActionResult<FormationDto>> Create([FromBody] CreateFormationRequest dto)
         {
             var formation = new Formation
@@ -58,6 +61,7 @@ namespace CreaState.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = "ManageFormations")]
         public async Task<IActionResult> Delete(int id)
         {
             var formation = await _formationRepo.GetByIdAsync(id);

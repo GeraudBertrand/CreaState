@@ -170,26 +170,7 @@
 
         Items = await InventoryService.GetAllItemsAsync(type);
         LowStockItems = await InventoryService.GetLowStockItemsAsync();
-
-        #if DEBUG
-        if (Items.Count == 0 && type == null) LoadMockItems();
-        #endif
     }
-
-    #if DEBUG
-    private void LoadMockItems()
-    {
-        Items = new List<Consommable>
-        {
-            new() { Id = 1, Type = "PLA", CouleurNom = "Noir", CouleurHex = "#1a1a1a", Quantite = 620, Seuil = 200 },
-            new() { Id = 2, Type = "PLA", CouleurNom = "Blanc", CouleurHex = "#ffffff", Quantite = 150, Seuil = 200 },
-            new() { Id = 3, Type = "PETG", CouleurNom = "Bleu", CouleurHex = "#2980b9", Quantite = 830, Seuil = 200 },
-            new() { Id = 4, Type = "ABS", CouleurNom = "Rouge", CouleurHex = "#e74c3c", Quantite = 90, Seuil = 150 },
-            new() { Id = 5, Type = "Résine UV", CouleurNom = "Grise", CouleurHex = "#95a5a6", Quantite = 350, Seuil = 100 },
-        };
-        LowStockItems = Items.Where(i => i.Quantite <= i.Seuil).ToList();
-    }
-    #endif
 
     private void OpenAddModal()
     {

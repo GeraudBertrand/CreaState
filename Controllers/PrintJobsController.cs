@@ -2,12 +2,14 @@ using CreaState.DTOs.Printers;
 using CreaState.Mapping;
 using CreaState.Models;
 using CreaState.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CreaState.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "ViewPrinters")]
     public class PrintJobsController : ControllerBase
     {
         private readonly PrintJobService _printJobService;

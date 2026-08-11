@@ -2,12 +2,14 @@ using CreaState.DTOs.Requetes;
 using CreaState.Mapping;
 using CreaState.Models;
 using CreaState.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CreaState.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class RequetesController : ControllerBase
     {
         private readonly RequestService _requestService;
@@ -18,6 +20,7 @@ namespace CreaState.Controllers
         }
 
         [HttpGet]
+        [Authorize(Policy = "ManageRequests")]
         public async Task<ActionResult<List<RequeteDto>>> GetAll([FromQuery] RequestStatus? status)
         {
             var requetes = await _requestService.GetAllRequestsAsync(status);
@@ -56,6 +59,7 @@ namespace CreaState.Controllers
         }
 
         [HttpPatch("{id}/status")]
+        [Authorize(Policy = "ManageRequests")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateRequeteStatusRequest dto)
         {
             var success = await _requestService.UpdateStatusAsync(id, dto.Status, dto.AssigneId, dto.RejectionReason);
