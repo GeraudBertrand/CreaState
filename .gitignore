@@ -366,4 +366,8 @@ MigrationBackup/
 FodyWeavers.xsd
 
 
+# Claude Code (config locale, ne pas partager)
 .claude/
+
+# Dumps de crash Git Bash
+*.stackdump
