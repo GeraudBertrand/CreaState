@@ -101,7 +101,7 @@ namespace CreaState.Services
                 RequeteId = requeteId,
                 AuteurId = auteurId,
                 Contenu = contenu,
-                Date = DateTime.UtcNow
+                Date = DateTime.Now
             };
 
             _db.RequeteCommentaires.Add(comment);

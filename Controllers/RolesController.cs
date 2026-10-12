@@ -1,12 +1,14 @@
 using CreaState.DTOs.Roles;
 using CreaState.Mapping;
 using CreaState.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CreaState.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "AdminOnly")]
     public class RolesController : ControllerBase
     {
         private readonly RoleService _roleService;

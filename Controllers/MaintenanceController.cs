@@ -2,12 +2,14 @@ using CreaState.DTOs.Maintenance;
 using CreaState.Mapping;
 using CreaState.Models;
 using CreaState.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CreaState.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize(Policy = "PrivateAccess")]
     public class MaintenanceController : ControllerBase
     {
         private readonly MaintenanceService _maintenanceService;
@@ -32,6 +34,7 @@ namespace CreaState.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "ManageMaintenance")]
         public async Task<ActionResult<MaintenanceDto>> Create([FromBody] CreateMaintenanceRequest dto)
         {
             var record = new Models.Maintenance

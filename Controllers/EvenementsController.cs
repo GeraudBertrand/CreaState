@@ -2,12 +2,14 @@ using CreaState.DTOs.Evenements;
 using CreaState.Mapping;
 using CreaState.Models;
 using CreaState.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CreaState.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class EvenementsController : ControllerBase
     {
         private readonly IEvenementRepository _evenementRepo;
@@ -40,6 +42,7 @@ namespace CreaState.Controllers
         }
 
         [HttpPost]
+        [Authorize(Policy = "ManageEvents")]
         public async Task<ActionResult<EvenementDto>> Create([FromBody] CreateEvenementRequest dto)
         {
             var evenement = new Evenement
@@ -56,6 +59,7 @@ namespace CreaState.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = "ManageEvents")]
         public async Task<IActionResult> Delete(int id)
         {
             var evenement = await _evenementRepo.GetByIdAsync(id);

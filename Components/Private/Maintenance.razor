@@ -184,33 +184,10 @@
     {
         AllRecords = await MaintenanceService.GetAllRecordsAsync();
 
-        #if DEBUG
-        if (AllRecords.Count == 0) LoadMockRecords();
-        #endif
-
         RecordsByPrinter = AllRecords
             .GroupBy(r => r.PrinterId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.Date).ToList());
     }
-
-    #if DEBUG
-    private void LoadMockRecords()
-    {
-        var mockMember = new Membre { Id = 10, FirstName = "Hugo", LastName = "Petit", UserRoles = [new AppUserRole { RoleId = 3, Role = new Role { Id = 3, DisplayName = "Resp. Technique" } }] };
-
-        AllRecords = new List<Models.Maintenance>
-        {
-            new() { Id = 1, PrinterId = 1, Printer = new Printer { Id = 1, Name = "Ratome", Model = "Bambu Lab A1 Mini" },
-                    Type = MaintenanceType.Calibration, Description = "Calibration XY complète après déplacement de la machine.", Date = DateTime.UtcNow.AddDays(-5), WorkerId = 10, Worker = mockMember },
-            new() { Id = 2, PrinterId = 2, Printer = new Printer { Id = 2, Name = "Bonnie", Model = "Bambu Lab A1 Mini" },
-                    Type = MaintenanceType.Autre, Description = "Buse bouchée, extrusion irrégulière.", Date = DateTime.UtcNow.AddDays(-3), WorkerId = 10, Worker = mockMember },
-            new() { Id = 3, PrinterId = 3, Printer = new Printer { Id = 3, Name = "Hubble", Model = "Bambu Lab A1 Mini" },
-                    Type = MaintenanceType.Reparation, Description = "Courroie axe Y détendue, remplacée.", Date = DateTime.UtcNow.AddDays(-10), WorkerId = 10, Worker = mockMember },
-            new() { Id = 4, PrinterId = 4, Printer = new Printer { Id = 4, Name = "R2-D2", Model = "Bambu Lab A1 Mini" },
-                    Type = MaintenanceType.Nettoyage, Description = "Nettoyage plateau et ventilateurs.", Date = DateTime.UtcNow.AddDays(-2), WorkerId = 10, Worker = mockMember },
-        };
-    }
-    #endif
 
     private void StartBreakdownReport(int printerId, string printerName)
     {

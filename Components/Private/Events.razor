@@ -1,0 +1,18 @@
+@page "/private/events"
+@layout PrivateLayout
+@attribute [Authorize(Policy = "ManageEvents")]
+
+@inject PageHeaderService HeaderService
+
+<PageTitle>Créalab - Événements</PageTitle>
+
+<div class="main-container theme-industrial">
+    <AdminEvents />
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        HeaderService.SetTitle("Événements", "Créer et gérer les événements de l'association");
+    }
+}

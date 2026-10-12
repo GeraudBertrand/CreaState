@@ -1,4 +1,7 @@
-﻿.theme-industrial {
+/* Printers — styles génériques (.btn) dans app.css.
+   Ici : thème industrial (override des variables) + theme-switcher + grille. */
+
+.theme-industrial {
     --bg-app: #e9ecef;
     --bg-card: #dee2e6;
     --text-main: #212529;
@@ -37,33 +40,19 @@
 }
 
     .btn-theme:hover {
-        background: rgba(0,0,0,0.05);
+        background: rgba(0, 0, 0, 0.05);
     }
 
     .btn-theme.active {
-        background: #0896b5;
+        background: var(--primary-blue);
         color: white;
     }
 
-.btn {
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-}
-
-.btn-primary {
-    background-color: #0896b5;
-    color: white;
-}
-
 .btn-outline {
-    border: 1px solid #0896b5;
-    color: #0896b5;
+    border: 1px solid var(--primary-blue);
+    color: var(--primary-blue);
     background: transparent;
 }
-
 
 .printer-grid {
     display: grid;

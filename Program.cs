@@ -70,6 +70,18 @@ builder.Services.ConfigureApplicationCookie(options =>
         context.Response.Redirect(context.RedirectUri);
         return Task.CompletedTask;
     };
+
+    // For API calls, return 403 instead of redirecting to the access-denied page
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api"))
+        {
+            context.Response.StatusCode = 403;
+            return Task.CompletedTask;
+        }
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
 });
 
 // Email sender for Identity (email confirmation, password reset)
@@ -101,6 +113,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("ManageRequests", p => p.RequireClaim("Permission", "manage_requests"));
     options.AddPolicy("ManageInventory", p => p.RequireClaim("Permission", "manage_inventory"));
     options.AddPolicy("ViewPrinters", p => p.RequireClaim("Permission", "view_printers"));
+    options.AddPolicy("ManageMaintenance", p => p.RequireClaim("Permission", "manage_maintenance"));
+    options.AddPolicy("ManageEvents", p => p.RequireClaim("Permission", "manage_events"));
+    options.AddPolicy("ManageFormations", p => p.RequireClaim("Permission", "manage_formations"));
     options.AddPolicy("AdminOnly", p => p.RequireClaim("Permission", "admin_access"));
 });
 #endregion

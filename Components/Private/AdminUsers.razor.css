@@ -191,15 +191,6 @@
     gap: 8px;
 }
 
-/* Toast succès */
-.toast-success {
-    padding: 0.75rem 1.5rem;
-    background: #e8f8f5;
-    color: #117a65;
-    font-size: 0.85rem;
-    border-bottom: 1px solid #a3e4d7;
-}
-
 /* Responsive : encore plus compact sur mobile */
 @media (max-width: 768px) {
     .role-col {

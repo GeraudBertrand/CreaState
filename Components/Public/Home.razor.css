@@ -1,27 +1,19 @@
-﻿/* --- Base --- */
+/* Home — variables, .text-center, .mt-3, .btn-primary, .btn-outline-primary
+   centralisés dans wwwroot/app.css. Ici : layout & sections page d'accueil. */
+
 .public-container {
     max-width: 1100px;
     margin: 0 auto;
     padding: 4rem 1.5rem;
-    font-family: 'Segoe UI', sans-serif;
-    color: var(--text-main, #2c3e50);
-}
-
-.text-center {
-    text-align: center;
-}
-
-.mt-3 {
-    margin-top: 1rem;
 }
 
 .section-divider {
     border: none;
-    border-top: 1px solid var(--border-color, #e1e8ed);
+    border-top: 1px solid var(--border-light);
     margin: 4rem 0;
 }
 
-/* --- Typographie Spécifique --- */
+/* Typographie spécifique à la home */
 h2 {
     font-size: 2rem;
     font-weight: 800;
@@ -29,54 +21,28 @@ h2 {
 }
 
 .section-header p {
-    color: var(--text-muted, #95a5a6);
+    color: var(--text-muted);
     font-size: 1.1rem;
     margin-top: 0;
     margin-bottom: 3rem;
 }
 
-/* --- Boutons --- */
-.btn-primary, .btn-outline-primary {
+/* Boutons "hero" plus grands */
+.hero-actions .btn-primary,
+.hero-actions .btn-outline-primary {
     padding: 12px 24px;
     border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.2s ease;
 }
 
-.btn-primary {
-    background: var(--primary-blue, #0896b5);
-    color: white;
-    border: none;
-}
-
-    .btn-primary:hover {
-        background: #077da0;
-        transform: translateY(-2px);
-    }
-
-.btn-outline-primary {
-    background: transparent;
-    color: var(--primary-blue, #0896b5);
-    border: 2px solid var(--primary-blue, #0896b5);
-}
-
-    .btn-outline-primary:hover {
-        background: rgba(8, 150, 181, 0.05);
-    }
-
-/* --- 1. Hero Section --- */
+/* --- 1. Hero --- */
 .hero-section {
     padding: 2rem 0 4rem 0;
 }
 
 .hero-badge {
     display: inline-block;
-    background: rgba(212, 26, 95, 0.1); /* Magenta léger */
-    color: var(--accent-magenta, #d41a5f);
+    background: rgba(212, 26, 95, 0.1);
+    color: var(--accent-magenta);
     padding: 6px 14px;
     border-radius: 20px;
     font-size: 0.85rem;
@@ -94,7 +60,7 @@ h2 {
 
 .hero-subtitle {
     font-size: 1.25rem;
-    color: var(--text-muted, #6c757d);
+    color: var(--text-muted);
     max-width: 700px;
     margin: 0 auto 2rem auto;
     line-height: 1.6;
@@ -107,7 +73,7 @@ h2 {
     flex-wrap: wrap;
 }
 
-/* --- 2. Mission Section --- */
+/* --- 2. Mission --- */
 .mission-section {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -119,7 +85,7 @@ h2 {
     padding: 2.5rem 2rem;
     border-radius: 12px;
     text-align: center;
-    border: 1px solid var(--border-color, #e1e8ed);
+    border: 1px solid var(--border-light);
     box-shadow: 0 4px 15px rgba(0,0,0,0.02);
     transition: transform 0.3s ease;
 }
@@ -127,12 +93,12 @@ h2 {
     .mission-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 25px rgba(0,0,0,0.06);
-        border-color: var(--primary-blue, #0896b5);
+        border-color: var(--primary-blue);
     }
 
     .mission-card i {
         font-size: 2.5rem;
-        color: var(--accent-orange, #f18904);
+        color: var(--accent-orange);
         margin-bottom: 1.5rem;
     }
 
@@ -142,13 +108,13 @@ h2 {
     }
 
     .mission-card p {
-        color: var(--text-muted, #6c757d);
+        color: var(--text-muted);
         font-size: 0.95rem;
         line-height: 1.6;
         margin: 0;
     }
 
-/* --- 3. Equipment Section --- */
+/* --- 3. Equipment --- */
 .equipment-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -159,7 +125,7 @@ h2 {
     background: white;
     padding: 1.5rem;
     border-radius: 12px;
-    border: 1px solid var(--border-color, #e1e8ed);
+    border: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
 }
@@ -167,8 +133,8 @@ h2 {
 .eq-icon {
     width: 50px;
     height: 50px;
-    background: var(--bg-app, #f8f9fa);
-    color: var(--primary-blue, #0896b5);
+    background: var(--bg-body);
+    color: var(--primary-blue);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -184,22 +150,16 @@ h2 {
 
 .equipment-card p {
     margin: 0;
-    color: var(--text-muted, #6c757d);
+    color: var(--text-muted);
     font-size: 0.9rem;
     line-height: 1.5;
 }
 
-/* --- 4. Projects Section --- */
+/* --- 4. Projects --- */
 .projects-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 30px;
-}
-
-@media (max-width: 768px) {
-    .projects-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 .project-box {
@@ -207,11 +167,11 @@ h2 {
     background: white;
     border-radius: 12px;
     overflow: hidden;
-    border: 1px solid var(--border-color, #e1e8ed);
+    border: 1px solid var(--border-light);
 }
 
 .proj-img {
-    background: var(--primary-blue, #0896b5);
+    background: var(--primary-blue);
     color: white;
     width: 140px;
     display: flex;
@@ -220,23 +180,10 @@ h2 {
     flex-shrink: 0;
 }
 
-/* 1. Bleu Créalab */
-.project-box:nth-child(1) .proj-img {
-    background: var(--primary-blue, #0896b5);
-}
-/* 2. Magenta Créalab */
-.project-box:nth-child(2) .proj-img {
-    background: var(--accent-magenta, #d41a5f);
-}
-/* 3. Orange Créalab */
-.project-box:nth-child(3) .proj-img {
-    background: var(--accent-orange, #f18904);
-}
-/* 4. Bleu Nuit / Ardoise (Couleur Corporate/Tech) */
-.project-box:nth-child(4) .proj-img {
-    background: var(--text-main, #2c3e50);
-}
-    
+.project-box:nth-child(1) .proj-img { background: var(--primary-blue); }
+.project-box:nth-child(2) .proj-img { background: var(--accent-magenta); }
+.project-box:nth-child(3) .proj-img { background: var(--accent-orange); }
+.project-box:nth-child(4) .proj-img { background: var(--text-main); }
 
 .proj-content {
     padding: 1.5rem;
@@ -249,22 +196,28 @@ h2 {
 
     .proj-content p {
         margin: 0;
-        color: var(--text-muted, #6c757d);
+        color: var(--text-muted);
         font-size: 0.95rem;
         line-height: 1.5;
     }
 
-/* --- 5. CTA Section --- */
+/* --- 5. CTA --- */
 .cta-section {
-    background: var(--bg-app, #f8f9fa);
+    background: var(--bg-body);
     padding: 4rem 2rem;
     border-radius: 16px;
-    border: 1px solid var(--border-color, #e1e8ed);
+    border: 1px solid var(--border-light);
 }
 
     .cta-section p {
         max-width: 600px;
         margin: 0 auto;
-        color: var(--text-muted, #6c757d);
+        color: var(--text-muted);
         line-height: 1.6;
     }
+
+@media (max-width: 768px) {
+    .projects-grid {
+        grid-template-columns: 1fr;
+    }
+}

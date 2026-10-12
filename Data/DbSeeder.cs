@@ -40,6 +40,7 @@ namespace CreaState.Data
                 ("NumManager", "Resp. Numerique", "Responsable numerique du fablab", false),
                 ("ComManager", "Resp. Communication", "Responsable communication", false),
                 ("EventManager", "Resp. Evenementiel", "Responsable evenementiel", false),
+                ("FormationManager", "Resp. Formation", "Responsable formation", false),
                 ("PartnershipManager", "Resp. Partenariat", "Responsable partenariats", false),
                 ("Secretary", "Secretaire", "Secretaire de l'association", false),
                 ("Treasurer", "Tresorier", "Tresorier de l'association", false),
@@ -64,8 +65,6 @@ namespace CreaState.Data
 
         private static async Task SeedPermissionsAsync(AppDbContext context)
         {
-            if (await context.Permissions.AnyAsync()) return;
-
             var permissions = new List<Permission>
             {
                 new() { Code = "view_dashboard", DisplayName = "Voir le dashboard", Category = "Navigation" },
@@ -81,25 +80,32 @@ namespace CreaState.Data
                 new() { Code = "manage_members", DisplayName = "Gerer les membres/roles", Category = "Membres" },
                 new() { Code = "admin_access", DisplayName = "Acces administration", Category = "Administration" },
                 new() { Code = "manage_printers", DisplayName = "Gerer les imprimantes", Category = "Administration" },
+                new() { Code = "manage_events", DisplayName = "Gerer les evenements", Category = "Evenementiel" },
+                new() { Code = "manage_formations", DisplayName = "Gerer les formations", Category = "Formations" },
             };
-            context.Permissions.AddRange(permissions);
-            await context.SaveChangesAsync();
+
+            // Idempotent : n'ajoute que les permissions qui n'existent pas encore.
+            var existingCodes = await context.Permissions.Select(p => p.Code).ToListAsync();
+            var missing = permissions.Where(p => !existingCodes.Contains(p.Code)).ToList();
+            if (missing.Count > 0)
+            {
+                context.Permissions.AddRange(missing);
+                await context.SaveChangesAsync();
+            }
         }
 
         private static async Task SeedRolePermissionsAsync(AppDbContext context)
         {
-            if (await context.RolePermissions.AnyAsync()) return;
-
             var roles = await context.Roles.ToListAsync();
             var perms = await context.Permissions.ToListAsync();
 
             Role R(string name) => roles.First(r => r.Name == name);
             Permission P(string code) => perms.First(p => p.Code == code);
 
-            var rolePermissions = new List<RolePermission>();
+            // Construit la matrice desiree sous forme de paires (roleName, permCode).
+            var desired = new List<(string Role, string Perm)>();
 
-            void Add(string roleName, string permCode)
-                => rolePermissions.Add(new RolePermission { RoleId = R(roleName).Id, PermissionId = P(permCode).Id });
+            void Add(string roleName, string permCode) => desired.Add((roleName, permCode));
 
             void AddMatrix(string[] roleNames, string[] permCodes)
             {
@@ -119,14 +125,38 @@ namespace CreaState.Data
             Add("AgentFab", "manage_requests");
             AddMatrix(techManagerRoles, new[] { "view_printers", "manage_printers", "manage_maintenance" });
             AddMatrix(secretaryPlus, new[] { "view_printers", "manage_printers", "manage_maintenance", "view_inventory", "manage_inventory" });
+            Add("EventManager", "manage_events");
+            Add("ComManager", "manage_events");
+            Add("FormationManager", "manage_formations");
             AddMatrix(bureauRoles, new[] {
                 "view_printers", "manage_printers", "manage_maintenance",
                 "view_inventory", "manage_inventory",
-                "manage_requests", "manage_members", "admin_access"
+                "manage_requests", "manage_members", "admin_access",
+                "manage_events", "manage_formations"
             });
 
-            context.RolePermissions.AddRange(rolePermissions);
-            await context.SaveChangesAsync();
+            // Idempotent : n'ajoute que les paires (role, permission) absentes.
+            // HashSet.Add renvoie false si la paire existe deja (dedoublonne aussi la liste desiree).
+            var existingSet = (await context.RolePermissions
+                    .Select(rp => new { rp.RoleId, rp.PermissionId })
+                    .ToListAsync())
+                .Select(rp => (rp.RoleId, rp.PermissionId))
+                .ToHashSet();
+
+            var toAdd = new List<RolePermission>();
+            foreach (var (roleName, permCode) in desired)
+            {
+                var rid = R(roleName).Id;
+                var pid = P(permCode).Id;
+                if (existingSet.Add((rid, pid)))
+                    toAdd.Add(new RolePermission { RoleId = rid, PermissionId = pid });
+            }
+
+            if (toAdd.Count > 0)
+            {
+                context.RolePermissions.AddRange(toAdd);
+                await context.SaveChangesAsync();
+            }
         }
 
         private static async Task SeedPrintersAsync(AppDbContext context)

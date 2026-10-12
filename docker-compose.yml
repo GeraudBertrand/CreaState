@@ -1,0 +1,42 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: creastate
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?définir MYSQL_ROOT_PASSWORD dans .env}
+      MYSQL_USER: creastate_app
+      MYSQL_PASSWORD: ${MYSQL_APP_PASSWORD:?définir MYSQL_APP_PASSWORD dans .env}
+    volumes:
+      - creastate-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    # Image publiée par .github/workflows/docker.yml. Le build local est dans docker-compose.override.yml
+    image: ghcr.io/geraudbertrand/creastate:${APP_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__DefaultConnection: Server=db;Port=3306;Database=creastate;User=creastate_app;Password=${MYSQL_APP_PASSWORD};CharSet=utf8mb4
+      Smtp__Host: ${SMTP_HOST:-}
+      Smtp__Port: ${SMTP_PORT:-587}
+      Smtp__User: ${SMTP_USER:-}
+      Smtp__Password: ${SMTP_PASSWORD:-}
+      Smtp__FromEmail: ${SMTP_FROM_EMAIL:-noreply@crealab.fr}
+      Smtp__FromName: ${SMTP_FROM_NAME:-Crealab}
+    ports:
+      - "8080:80"
+    volumes:
+      - creastate-uploads:/app/wwwroot/uploads
+
+volumes:
+  creastate-mysql:
+  creastate-uploads:
