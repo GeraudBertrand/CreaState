@@ -5,7 +5,22 @@
 <div class="section-card">
     <div class="card-header">
         <h3><i class="fa-solid fa-users-gear"></i> Matrice des rôles</h3>
-        <span style="font-size: 0.8rem; color: var(--text-muted);">@AllMembers.Count membre(s) · @AllRoles.Count rôle(s)</span>
+        <span style="font-size: 0.8rem; color: var(--text-muted);">@FilteredMembers.Count / @AllMembers.Count compte(s) · @AllRoles.Count rôle(s)</span>
+    </div>
+
+    <div class="filters-bar" style="padding: 0.75rem 1.5rem;">
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" class="form-input" placeholder="Nom ou email..." aria-label="Rechercher un compte"
+                   @bind="SearchTerm" @bind:event="oninput" />
+        </div>
+        <select class="form-input" style="width: auto;" aria-label="Filtrer par rôle" @bind="RoleFilter">
+            <option value="0">Tous les rôles</option>
+            @foreach (var role in AllRoles)
+            {
+                <option value="@role.Id">@role.DisplayName</option>
+            }
+        </select>
     </div>
 
     @if (!string.IsNullOrEmpty(SuccessMessage))
@@ -29,7 +44,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var m in AllMembers)
+                @foreach (var m in FilteredMembers)
                 {
                     var isSelf = CurrentMembreId == m.Id;
                     var memberRoleIds = m.UserRoles.Select(ur => ur.RoleId).ToHashSet();
@@ -91,6 +106,16 @@
     private List<Role> AllRoles = new();
     private int? CurrentMembreId;
     private string? SuccessMessage;
+    private string SearchTerm = "";
+    private int RoleFilter;
+
+    // Filtre sur les rôles enregistrés (pas les cases en attente) : la ligne ne disparaît pas quand on décoche
+    private List<User> FilteredMembers => AllMembers
+        .Where(m => string.IsNullOrWhiteSpace(SearchTerm)
+            || $"{m.FirstName} {m.LastName}".Contains(SearchTerm, StringComparison.OrdinalIgnoreCase)
+            || (m.Email ?? "").Contains(SearchTerm, StringComparison.OrdinalIgnoreCase))
+        .Where(m => RoleFilter == 0 || OriginalRoles.GetValueOrDefault(m.Id, []).Contains(RoleFilter))
+        .ToList();
 
     // Stocke l'état modifié des rôles par membre : memberId → Set<roleId>
     private Dictionary<int, HashSet<int>> PendingChanges = new();
