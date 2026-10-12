@@ -1760,7 +1760,6 @@ main {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: white;
     transition: all 0.2s;
 }
 
