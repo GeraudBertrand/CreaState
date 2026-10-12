@@ -129,7 +129,7 @@ builder.Services.AddScoped<MemberService>();
 builder.Services.AddScoped<RoleService>();
 builder.Services.AddScoped<PageHeaderService>();
 builder.Services.AddSingleton<PrinterService>();
-//builder.Services.AddHostedService<PrinterMqttWorker>();
+builder.Services.AddHostedService<PrinterMqttWorker>();
 builder.Services.AddScoped<RequestService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<MaintenanceService>();
@@ -145,7 +145,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     await DbSeeder.SeedAsync(services);
 
-    // Les pages lisent PrinterService ; sans ça il reste vide tant que le worker MQTT est désactivé
+    // Les pages lisent PrinterService : rempli dès le démarrage, sans attendre le premier passage du worker MQTT
     services.GetRequiredService<PrinterService>()
         .LoadPrintersFromDb(await services.GetRequiredService<IPrinterRepository>().GetEnabledAsync());
 }

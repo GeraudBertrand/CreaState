@@ -22,21 +22,51 @@ namespace CreaState.Services
         {
             _logger.LogInformation("Démarrage du service MQTT Bambu Lab...");
 
-            using (var scope = _scopeFactory.CreateScope())
+            // Une boucle de connexion par imprimante, relancée quand sa config change en base (ajout/modif/retrait depuis l'admin)
+            var running = new Dictionary<int, (Models.Printer Config, CancellationTokenSource Cts)>();
+            try
             {
-                var printerRepo = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
-                var dbPrinters = await printerRepo.GetEnabledAsync();
-                _printerService.LoadPrintersFromDb(dbPrinters);
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        List<Models.Printer> dbPrinters;
+                        using (var scope = _scopeFactory.CreateScope())
+                            dbPrinters = await scope.ServiceProvider.GetRequiredService<IPrinterRepository>().GetEnabledAsync();
+
+                        _printerService.LoadPrintersFromDb(dbPrinters);
+
+                        foreach (var (id, run) in running.Where(r => !dbPrinters.Any(p => SameConnection(p, r.Value.Config))).ToList())
+                        {
+                            run.Cts.Cancel();
+                            running.Remove(id);
+                        }
+
+                        foreach (var printer in dbPrinters.Where(p => !running.ContainsKey(p.Id)))
+                        {
+                            // Les données de la base (avec AccessCode), pas PrinterService.GetPrinters() qui le vide
+                            var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+                            running[printer.Id] = (printer, cts);
+                            _ = ConnectAndListenToPrinter(printer, cts.Token);
+                        }
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogWarning("Lecture des imprimantes impossible : {Message}", ex.Message);
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                }
             }
-
-            var printers = _printerService.GetPrinters();
-            var tasks = new List<Task>();
-
-            foreach (var printer in printers)
-                tasks.Add(ConnectAndListenToPrinter(printer, stoppingToken));
-
-            await Task.WhenAll(tasks);
+            catch (OperationCanceledException) { }
+            finally
+            {
+                foreach (var run in running.Values) run.Cts.Cancel();
+            }
         }
+
+        private static bool SameConnection(Models.Printer a, Models.Printer b)
+            => a.Id == b.Id && a.IpAddress == b.IpAddress && a.SerialNumber == b.SerialNumber && a.AccessCode == b.AccessCode;
 
         private async Task ConnectAndListenToPrinter(Models.Printer printer, CancellationToken token)
         {
@@ -46,6 +76,19 @@ namespace CreaState.Services
                 return;
             }
 
+            try
+            {
+                await ListenLoop(printer, token);
+            }
+            catch (OperationCanceledException) { }
+            finally
+            {
+                _printerService.SetOffline(printer.IpAddress);
+            }
+        }
+
+        private async Task ListenLoop(Models.Printer printer, CancellationToken token)
+        {
             var mqttFactory = new MqttClientFactory();
             using var mqttClient = mqttFactory.CreateMqttClient();
 
@@ -70,31 +113,46 @@ namespace CreaState.Services
                 return Task.CompletedTask;
             };
 
+            // Imprimante éteinte (la nuit) : on la marque hors ligne, la boucle ci-dessous la retrouve à son rallumage
+            mqttClient.DisconnectedAsync += e =>
+            {
+                if (e.ClientWasConnected)
+                    _logger.LogInformation($"Connexion perdue avec {printer.Name}, nouvelle tentative régulière.");
+                _printerService.SetOffline(printer.IpAddress);
+                return Task.CompletedTask;
+            };
+
+            var failures = 0;
             while (!token.IsCancellationRequested)
             {
                 try
                 {
                     if (!mqttClient.IsConnected)
                     {
-                        _logger.LogInformation($"Connexion à {printer.Name} ({printer.IpAddress})...");
-
-                        using (var connectTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+                        using (var connectTimeout = CancellationTokenSource.CreateLinkedTokenSource(token))
+                        {
+                            connectTimeout.CancelAfter(TimeSpan.FromSeconds(5));
                             await mqttClient.ConnectAsync(options, connectTimeout.Token);
+                        }
 
                         string reportTopic = $"device/{printer.SerialNumber}/report";
-                        await mqttClient.SubscribeAsync(reportTopic);
+                        await mqttClient.SubscribeAsync(reportTopic, cancellationToken: token);
 
                         _logger.LogInformation($"Connecté à {printer.Name} !");
+                        failures = 0;
 
                         _ = Task.Run(() => MaintainPushAllLoop(mqttClient, printer.SerialNumber, token), token);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (!token.IsCancellationRequested)
                 {
-                    _logger.LogWarning($"Échec connexion {printer.Name}: {ex.Message}. Retry 10s...");
+                    // Un seul warning par coupure, sinon une imprimante éteinte remplit les logs toute la nuit
+                    if (failures++ == 0)
+                        _logger.LogWarning($"{printer.Name} injoignable ({ex.Message}), nouvelle tentative régulière.");
                 }
 
-                await Task.Delay(10000, token);
+                // 10 s quand tout va bien, jusqu'à 60 s entre deux essais quand l'imprimante reste éteinte
+                await Task.Delay(TimeSpan.FromSeconds(Math.Min(10 * Math.Max(failures, 1), 60)), token);
             }
         }
 
@@ -121,7 +179,8 @@ namespace CreaState.Services
                     break;
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(5), token);
+                try { await Task.Delay(TimeSpan.FromMinutes(5), token); }
+                catch (OperationCanceledException) { break; }
             }
         }
     }
