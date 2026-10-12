@@ -1,10 +1,28 @@
+@using System.Net
+@using System.Net.Sockets
+@using CreaState.Repositories.Interfaces
+@inject IPrinterRepository PrinterRepo
+@inject PrinterService PrinterService
+
 <div class="section-card">
     <div class="card-header">
         <h3><i class="fa-solid fa-network-wired"></i> Configuration Réseau Bambu Lab</h3>
-        <button class="btn btn-sm btn-primary" @onclick="AddNewPrinter">
-            <i class="fa-solid fa-plus"></i> Ajouter
-        </button>
+        <div style="display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-secondary" @onclick="AddNewPrinter">
+                <i class="fa-solid fa-plus"></i> Ajouter
+            </button>
+            <button class="btn btn-sm btn-primary" @onclick="SaveAll">
+                <i class="fa-solid fa-floppy-disk"></i> Sauvegarder
+            </button>
+        </div>
     </div>
+
+    @if (!string.IsNullOrEmpty(Message))
+    {
+        <div class="toast-success" style="@(IsError ? "background: #fdecea; color: #a93226; border-color: #f5b7b1;" : "")">
+            <i class="fa-solid @(IsError ? "fa-triangle-exclamation" : "fa-check-circle")"></i> @Message
+        </div>
+    }
 
     <div class="table-responsive">
         <table class="admin-table">
@@ -13,6 +31,7 @@
                     <th>Nom</th>
                     <th>Modèle</th>
                     <th>IP Locale</th>
+                    <th>N° de série</th>
                     <th>Access Code</th>
                     <th>Actions</th>
                 </tr>
@@ -31,18 +50,23 @@
                             </select>
                         </td>
                         <td><input class="form-input code-font" @bind="p.IpAddress" placeholder="192.168.1.x" /></td>
+                        <td><input class="form-input code-font" @bind="p.SerialNumber" placeholder="Requis pour MQTT" /></td>
                         <td>
                             <div class="password-input">
                                 <input type="text" class="form-input code-font" @bind="p.AccessCode" placeholder="Code écran" />
                             </div>
                         </td>
                         <td>
-                            <button class="btn-icon danger" title="Supprimer" @onclick="() => RemovePrinter(p)">
+                            <button class="btn-icon danger" title="Retirer" @onclick="() => RemovePrinter(p)">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
-                            <button class="btn-icon success" title="Tester Connexion">
+                            <button class="btn-icon success" title="Tester Connexion" @onclick="() => TestConnection(p)">
                                 <i class="fa-solid fa-wifi"></i>
                             </button>
+                            @if (TestResults.TryGetValue(p, out var result))
+                            {
+                                <small>@result</small>
+                            }
                         </td>
                     </tr>
                 }
@@ -57,26 +81,81 @@
 
 @code {
     private List<Printer> Printers = new();
+    private Dictionary<Printer, string> TestResults = new();
+    private string? Message;
+    private bool IsError;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // TODO: charger depuis PrinterService / DB
-        Printers = new List<Printer>
-        {
-            new Printer { Id = 1, Name = "Bambu A1 - 01", Model = "A1", IpAddress = "192.168.1.50", AccessCode = "12345678" },
-            new Printer { Id = 2, Name = "Bambu A1 - 02", Model = "A1", IpAddress = "192.168.1.51", AccessCode = "87654321" },
-            new Printer { Id = 3, Name = "La X1 Carbon", Model = "X1C", IpAddress = "192.168.1.60", AccessCode = "ABCD1234" },
-            new Printer { Id = 4, Name = "Bambu A1 Mini", Model = "A1 Mini", IpAddress = "192.168.1.52", AccessCode = "MINI0001" },
-        };
+        Printers = await PrinterRepo.GetEnabledAsync();
     }
 
     private void AddNewPrinter()
     {
-        Printers.Add(new Printer { Name = "Nouvelle Imprimante", IpAddress = "0.0.0.0" });
+        Printers.Add(new Printer { Name = "Nouvelle Imprimante", Model = "A1" });
     }
 
-    private void RemovePrinter(Printer p)
+    private async Task SaveAll()
+    {
+        var invalid = Printers.FirstOrDefault(p => string.IsNullOrWhiteSpace(p.Name) || !IPAddress.TryParse(p.IpAddress, out _));
+        if (invalid != null)
+        {
+            ShowMessage($"« {invalid.Name} » : nom vide ou adresse IP invalide.", true);
+            return;
+        }
+
+        try
+        {
+            foreach (var p in Printers)
+            {
+                if (p.Id == 0) await PrinterRepo.AddAsync(p);
+                else await PrinterRepo.UpdateAsync(p);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage($"Erreur de sauvegarde : {ex.GetBaseException().Message}", true);
+            return;
+        }
+
+        await ReloadRuntimeAsync();
+        ShowMessage("Parc machines sauvegardé.");
+    }
+
+    private async Task RemovePrinter(Printer p)
     {
         Printers.Remove(p);
+        if (p.Id == 0) return;
+
+        // Désactivation plutôt que suppression : maintenances et impressions y sont liées (FK Restrict)
+        p.Enabled = false;
+        await PrinterRepo.UpdateAsync(p);
+        await ReloadRuntimeAsync();
+        ShowMessage($"« {p.Name} » retirée du parc.");
+    }
+
+    // Mise à jour immédiate des pages ; le worker MQTT applique la nouvelle config de connexion sous 30 s
+    private async Task ReloadRuntimeAsync()
+        => PrinterService.LoadPrintersFromDb(await PrinterRepo.GetEnabledAsync());
+
+    private async Task TestConnection(Printer p)
+    {
+        TestResults[p] = "…";
+        try
+        {
+            using var tcp = new TcpClient();
+            await tcp.ConnectAsync(p.IpAddress, 8883).WaitAsync(TimeSpan.FromSeconds(3));
+            TestResults[p] = "OK";
+        }
+        catch
+        {
+            TestResults[p] = "Injoignable";
+        }
+    }
+
+    private void ShowMessage(string text, bool error = false)
+    {
+        Message = text;
+        IsError = error;
     }
 }

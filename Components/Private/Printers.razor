@@ -49,6 +49,7 @@
 
     private void RefreshUI()
     {
+        Imprimantes = PrinterService.GetPrinterStates(); // la liste peut changer (ajout/retrait depuis l'admin)
         InvokeAsync(StateHasChanged);
     }
 

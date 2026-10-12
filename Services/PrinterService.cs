@@ -29,19 +29,31 @@ namespace CreaState.Services
 
         public void LoadPrintersFromDb(List<Printer> dbPrinters)
         {
-            _printers.Clear();
+            // Fusion plutôt que Clear : rappelé toutes les 30 s par le worker, il ne doit pas effacer l'état temps réel
+            foreach (var ip in _printers.Keys.Except(dbPrinters.Select(p => p.IpAddress)))
+                _printers.TryRemove(ip, out _);
+
             foreach (var p in dbPrinters)
             {
-                _printers.TryAdd(p.IpAddress, new PrinterRuntimeState
-                {
-                    PrinterId = p.Id,
-                    Name = p.Name,
-                    IpAddress = p.IpAddress,
-                    Model = p.Model,
-                    SerialNumber = p.SerialNumber
-                });
+                var state = _printers.GetOrAdd(p.IpAddress, ip => new PrinterRuntimeState { IpAddress = ip });
+                state.PrinterId = p.Id;
+                state.Name = p.Name;
+                state.Model = p.Model;
+                state.SerialNumber = p.SerialNumber;
             }
+            NotifyStateChanged();
         }
+
+        public void SetOffline(string ipAddress)
+        {
+            if (!_printers.TryGetValue(ipAddress, out var state) || state.Status == PrinterStatus.Offline) return;
+            state.Status = PrinterStatus.Offline;
+            state.Progress = 0;
+            state.TimeRemainingMinutes = 0;
+            NotifyStateChanged();
+        }
+
+        public int OnlineCount => _printers.Values.Count(p => p.Status != PrinterStatus.Offline);
 
         public List<Printer> GetPrinters()
         {
