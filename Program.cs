@@ -144,6 +144,10 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     await DbSeeder.SeedAsync(services);
+
+    // Les pages lisent PrinterService ; sans ça il reste vide tant que le worker MQTT est désactivé
+    services.GetRequiredService<PrinterService>()
+        .LoadPrintersFromDb(await services.GetRequiredService<IPrinterRepository>().GetEnabledAsync());
 }
 
 if (!app.Environment.IsDevelopment())
