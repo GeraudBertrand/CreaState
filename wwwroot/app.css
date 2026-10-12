@@ -1736,6 +1736,10 @@ main {
         box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
     }
 
+    .status-dot.offline {
+        background-color: var(--text-muted);
+    }
+
 .card-footer-info {
     padding: 10px 1.2rem;
     background: #e0f7fa;

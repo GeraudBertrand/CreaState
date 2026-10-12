@@ -2,13 +2,17 @@
 @layout PrivateLayout
 @attribute [Authorize(Policy = "AdminOnly")]
 
+@implements IDisposable
 @inject PageHeaderService HeaderService
+@inject PrinterService PrinterService
 
 <PageTitle>Créalab - Administration</PageTitle>
 
 <SectionContent SectionName="HeaderActions">
     <div class="system-status">
-        <span class="status-dot online"></span> Serveur MQTT: <strong>Connecté</strong>
+        @{ var online = PrinterService.OnlineCount; }
+        <span class="status-dot @(online > 0 ? "online" : "offline")"></span>
+        Imprimantes connectées : <strong>@online/@PrinterService.GetPrinterStates().Count</strong>
     </div>
 </SectionContent>
 
@@ -51,7 +55,12 @@
     protected override void OnInitialized()
     {
         HeaderService.SetTitle("Administration", "Gestion des utilisateurs et du parc machines");
+        PrinterService.OnChange += RefreshUI;
     }
+
+    private void RefreshUI() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => PrinterService.OnChange -= RefreshUI;
 
     private void SetTab(string tab)
     {

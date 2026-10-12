@@ -24,7 +24,7 @@
             <div class="kpi-icon kpi-magenta"><i class="fa-solid fa-print"></i></div>
             <div class="kpi-content">
                 <h3>@ActivePrinterCount/@TotalPrinterCount</h3>
-                <p>Imprimantes actives</p>
+                <p>Imprimantes en ligne</p>
             </div>
         </div>
         <div class="kpi-card">
@@ -123,12 +123,18 @@
                 <ul style="list-style: none; padding: 0;">
                     @foreach (var printer in PrinterList)
                     {
+                        var color = printer.Status switch
+                        {
+                            PrinterStatus.Offline => "var(--text-muted)",
+                            PrinterStatus.Error => "var(--status-error)",
+                            _ => "var(--status-success)"
+                        };
                         <li style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
                             <span>
-                                <i class="fa-solid fa-check" style="color: var(--status-success);"></i>
+                                <i class="fa-solid @(printer.Status == PrinterStatus.Offline ? "fa-power-off" : "fa-check")" style="color: @color;"></i>
                                 @printer.Name
                             </span>
-                            <span style="font-weight: bold; color: var(--status-success);">OK</span>
+                            <span style="font-weight: bold; color: @color;">@printer.Status.GetDisplayName()</span>
                         </li>
                     }
                 </ul>
@@ -150,7 +156,7 @@
     private List<Formation>? FormationsList;
     private List<Evenement>? Events;
     private List<Consommable> LowStockItems = new();
-    private List<Printer> PrinterList = new();
+    private List<PrinterRuntimeState> PrinterList = new();
 
     private Evenement? NextEvent;
 
@@ -163,9 +169,9 @@
         PendingRequestCount = await Db.Requetes.CountAsync(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.UnderReview);
 
         // Imprimantes
-        PrinterList = PrinterService.GetPrinters();
+        PrinterList = PrinterService.GetPrinterStates();
         TotalPrinterCount = PrinterList.Count;
-        ActivePrinterCount = PrinterList.Count; // All are considered active from config
+        ActivePrinterCount = PrinterService.OnlineCount;
 
         // Stock bas
         LowStockItems = await InventoryService.GetLowStockItemsAsync();
