@@ -59,3 +59,22 @@ Voici comment le projet est organisé :
 Note sur le MQTT (Bambu Lab):
 Le projet utilise la librairie MQTTnet pour se connecter au port 8883 des imprimantes.
 En mode développement (local), le service MQTT tente de se connecter mais ne plantera pas l'application s'il ne trouve pas les imprimantes.
+
+## Docker et SMTP
+
+Le lancement Docker démarre l'application et MySQL :
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+### Déploiement serveur (staging / prod)
+
+Voir [DEPLOY.md](DEPLOY.md).
+
+Renseignez dans `.env` les variables `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL` et `SMTP_FROM_NAME`.
+Pour un test avec Gmail, utilisez `smtp.gmail.com`, le port `587`, votre adresse Gmail complète et un mot de passe d'application Google de 16 caractères. La validation en deux étapes doit être activée sur le compte. Le mot de passe habituel du compte Google ne fonctionne pas avec cette configuration.
+Le fournisseur SMTP doit autoriser l'adresse `SMTP_FROM_EMAIL` comme expéditeur vérifié. L'application utilise STARTTLS sur le port 587 et envoie les emails de confirmation d'adresse et de réinitialisation de mot de passe.
+
+L'interface est accessible sur http://localhost:8080.
