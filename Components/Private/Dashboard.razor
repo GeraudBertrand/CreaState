@@ -3,11 +3,12 @@
 @attribute [Authorize(Policy = "PrivateAccess")]
 
 @using Microsoft.EntityFrameworkCore
+@implements IDisposable
 @inject PageHeaderService HeaderService
-@inject CreaState.Data.AppDbContext Db
+@inject IServiceScopeFactory ScopeFactory
 @inject PrinterService PrinterService
-@inject InventoryService InventoryService
-@inject MaintenanceService MaintenanceService
+@inject DataChangeNotifier DataNotifier
+@inject ILogger<Dashboard> Logger
 
 <PageTitle>Créalab - Dashboard</PageTitle>
 
@@ -160,47 +161,97 @@
 
     private Evenement? NextEvent;
 
+    private bool Reloading;
+    private bool ReloadPending;
+
     protected override async Task OnInitializedAsync()
     {
         HeaderService.SetTitle("Bienvenue au Créalab", "Résumé des activités et informations importantes");
 
-        // KPIs depuis la BDD
-        MemberCount = await Db.Membres.CountAsync(m => m.IsActive);
-        PendingRequestCount = await Db.Requetes.CountAsync(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.UnderReview);
+        LoadPrinters();
+        await LoadDataAsync();
 
-        // Imprimantes
+        PrinterService.OnChange += OnPrintersChanged;
+        DataNotifier.OnChange += OnDataChanged;
+    }
+
+    private void LoadPrinters()
+    {
         PrinterList = PrinterService.GetPrinterStates();
         TotalPrinterCount = PrinterList.Count;
         ActivePrinterCount = PrinterService.OnlineCount;
+    }
 
-        // Stock bas
-        LowStockItems = await InventoryService.GetLowStockItemsAsync();
+    private async Task LoadDataAsync()
+    {
+        // Contexte neuf à chaque fois : celui du circuit garde les entités en cache et masquerait les modifs faites ailleurs
+        using var scope = ScopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CreaState.Data.AppDbContext>();
+        var inventory = scope.ServiceProvider.GetRequiredService<InventoryService>();
+
+        MemberCount = await db.Membres.CountAsync(m => m.IsActive);
+        PendingRequestCount = await db.Requetes.CountAsync(r => r.Status == RequestStatus.Submitted || r.Status == RequestStatus.UnderReview);
+
+        LowStockItems = await inventory.GetLowStockItemsAsync();
         LowStockCount = LowStockItems.Count;
 
-        // Formations, Événements depuis BDD (données live)
         var today = DateOnly.FromDateTime(DateTime.Now);
-        FormationsList = await Db.Formations
+        FormationsList = await db.Formations
             .Include(f => f.Instructeur)
             .Where(f => f.Date >= today)
             .OrderBy(f => f.Date).ThenBy(f => f.StartTime)
             .Take(4)
             .ToListAsync();
-        Events = await Db.Evenements.OrderBy(e => e.Date).ToListAsync();
+        Events = await db.Evenements.OrderBy(e => e.Date).ToListAsync();
 
         GetNextEvent();
     }
 
+    private void OnPrintersChanged() => InvokeAsync(() =>
+    {
+        LoadPrinters();
+        StateHasChanged();
+    });
+
+    // Une rafale d'écritures (ex. sauvegarde du parc) ne déclenche qu'un rechargement en cours + un dernier
+    private void OnDataChanged() => InvokeAsync(async () =>
+    {
+        if (Reloading) { ReloadPending = true; return; }
+        Reloading = true;
+        try
+        {
+            do
+            {
+                ReloadPending = false;
+                await LoadDataAsync();
+                StateHasChanged();
+            } while (ReloadPending);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Rafraîchissement du dashboard impossible, dernières données conservées");
+        }
+        finally
+        {
+            Reloading = false;
+        }
+    });
+
     private void GetNextEvent()
     {
-        if(Events != null && Events.Count != 0)
-        {
-            var upcoming = Events
-                .Where(e => (e.Date.Date - DateTime.Now.Date).Days >= 0)
-                .OrderBy(e => e.Date)
-                .ToList();
+        var upcoming = (Events ?? [])
+            .Where(e => (e.Date.Date - DateTime.Now.Date).Days >= 0)
+            .OrderBy(e => e.Date)
+            .ToList();
 
-            NextEvent = upcoming.FirstOrDefault();
-            UpcomingEventCount = upcoming.Count;
-        }
+        // Réinitialisé même si la liste est vide : un événement supprimé doit disparaître
+        NextEvent = upcoming.FirstOrDefault();
+        UpcomingEventCount = upcoming.Count;
+    }
+
+    public void Dispose()
+    {
+        PrinterService.OnChange -= OnPrintersChanged;
+        DataNotifier.OnChange -= OnDataChanged;
     }
 }

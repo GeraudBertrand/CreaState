@@ -9,11 +9,13 @@ namespace CreaState.Services
     {
         private readonly IMembreRepository _membreRepo;
         private readonly AppDbContext _db;
+        private readonly DataChangeNotifier _notifier;
 
-        public MemberService(IMembreRepository membreRepo, AppDbContext db)
+        public MemberService(IMembreRepository membreRepo, AppDbContext db, DataChangeNotifier notifier)
         {
             _membreRepo = membreRepo;
             _db = db;
+            _notifier = notifier;
         }
 
         public async Task<Membre?> GetMemberByIdAsync(int id)
@@ -54,6 +56,7 @@ namespace CreaState.Services
                 UPDATE Users SET UserType = {(int)userType},
                     IsActive = COALESCE(IsActive, TRUE), JoinDate = COALESCE(JoinDate, {DateTime.UtcNow})
                 WHERE Id = {membreId}");
+            _notifier.Notify(); // ExecuteUpdate passe à côté de l'interceptor SaveChanges
             return true;
         }
 

@@ -22,9 +22,11 @@ builder.Services.AddControllers();
 #region Database
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddSingleton<DataChangeNotifier>();
+builder.Services.AddDbContext<AppDbContext>((sp, options) =>
        options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 4, 0)),
        o => o.EnableRetryOnFailure())
+       .AddInterceptors(sp.GetRequiredService<DataChangeNotifier>())
 );
 
 #endregion
