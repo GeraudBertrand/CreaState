@@ -87,7 +87,7 @@
 </div>
 
 @code {
-    private List<Membre> AllMembers = new();
+    private List<User> AllMembers = new();
     private List<Role> AllRoles = new();
     private int? CurrentMembreId;
     private string? SuccessMessage;
@@ -105,7 +105,7 @@
 
     private async Task LoadData()
     {
-        AllMembers = await MemberService.GetAllMembersAsync();
+        AllMembers = await MemberService.GetAllUsersAsync();
         AllRoles = await RoleService.GetAllRolesAsync();
 
         // Stocker un snapshot des rôles originaux
