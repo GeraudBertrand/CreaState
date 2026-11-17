@@ -11,11 +11,13 @@ namespace CreaState.Services
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly IMembreRepository _membreRepo;
+        private readonly IEmailSender<User> _emailSender;
 
         private const string AllowedDomain = "@edu.devinci.fr";
 
-        public AuthService(UserManager<User> userManager, SignInManager<User> signInManager, IMembreRepository membreRepo)
+        public AuthService(UserManager<User> userManager, SignInManager<User> signInManager, IMembreRepository membreRepo, IEmailSender<User> emailSender)
         {
+            _emailSender = emailSender;
             _userManager = userManager;
             _signInManager = signInManager;
             _membreRepo = membreRepo;
@@ -130,6 +132,51 @@ namespace CreaState.Services
 
             var result = await _userManager.ConfirmEmailAsync(user, token);
             return result.Succeeded;
+        }
+
+        /// <summary>
+        /// Envoie le lien de réinitialisation. Ne dit rien si l'email est inconnu (pas d'énumération de comptes).
+        /// </summary>
+        public async Task SendPasswordResetAsync(string email, string baseUri)
+        {
+            var user = await _userManager.FindByEmailAsync(email.Trim().ToLowerInvariant());
+            if (user != null) await SendPasswordResetAsync(user, baseUri);
+        }
+
+        public async Task SendPasswordResetAsync(User user, string baseUri)
+        {
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var link = $"{baseUri.TrimEnd('/')}/account/reset-password?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+            await _emailSender.SendPasswordResetLinkAsync(user, user.Email!, link);
+        }
+
+        public async Task<(bool Success, string? Error)> ResetPasswordAsync(int userId, string token, string newPassword)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null) return (false, "Lien invalide ou expiré.");
+
+            var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
+            if (result.Succeeded) return (true, null);
+
+            return (false, result.Errors.Any(e => e.Code == "InvalidToken")
+                ? "Lien invalide ou expiré."
+                : string.Join(" ", result.Errors.Select(e => e.Description)));
+        }
+
+        public async Task<(bool Success, string? Error)> DeleteUserAsync(int userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null) return (false, "Compte introuvable.");
+
+            try
+            {
+                var result = await _userManager.DeleteAsync(user);
+                return result.Succeeded ? (true, null) : (false, string.Join(" ", result.Errors.Select(e => e.Description)));
+            }
+            catch (DbUpdateException) // FK Restrict : demandes, commentaires, formations liés
+            {
+                return (false, "Suppression impossible : ce compte est lié à des demandes, commentaires ou formations.");
+            }
         }
     }
 
