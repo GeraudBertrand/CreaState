@@ -44,7 +44,7 @@
 /* Colonne membre (fixe à gauche) */
 .member-col {
     text-align: left;
-    min-width: 240px;
+    min-width: 204px;
     position: sticky;
     left: 0;
     background: white;
@@ -203,7 +203,7 @@
     }
 
     .member-col {
-        min-width: 180px;
+        min-width: 153px;
     }
 
     .member-info small {
