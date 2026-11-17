@@ -1,6 +1,9 @@
 @inject MemberService MemberService
 @inject RoleService RoleService
 @inject AuthStateProvider AuthState
+@inject AuthService AuthService
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
 
 <div class="section-card">
     <div class="card-header">
@@ -41,6 +44,7 @@
                             <span class="role-header">@role.DisplayName</span>
                         </th>
                     }
+                    <th class="role-col">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -81,6 +85,16 @@
                                 </label>
                             </td>
                         }
+                        <td class="role-col" style="white-space: nowrap;">
+                            <button class="btn btn-sm btn-secondary" title="Envoyer un lien de réinitialisation du mot de passe"
+                                    aria-label="Réinitialiser le mot de passe de @m.Email" @onclick="() => ResetPassword(m)">
+                                <i class="fa-solid fa-key"></i>
+                            </button>
+                            <button class="btn btn-sm btn-secondary" title="Supprimer le compte" disabled="@isSelf"
+                                    aria-label="Supprimer le compte de @m.Email" @onclick="() => DeleteUser(m)">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -194,6 +208,30 @@
             SuccessMessage = $"Rôles mis à jour pour : {string.Join(", ", names)}";
         }
 
+        await LoadData();
+    }
+
+    private async Task ResetPassword(User m)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Envoyer un lien de réinitialisation du mot de passe à {m.Email} ?")) return;
+        try
+        {
+            await AuthService.SendPasswordResetAsync(m, NavManager.BaseUri);
+            SuccessMessage = $"Lien de réinitialisation envoyé à {m.Email}";
+        }
+        catch (Exception)
+        {
+            SuccessMessage = $"Échec de l'envoi à {m.Email} (SMTP ?)";
+        }
+    }
+
+    private async Task DeleteUser(User m)
+    {
+        if (m.Id == CurrentMembreId) return;
+        if (!await JS.InvokeAsync<bool>("confirm", $"Supprimer définitivement le compte de {m.FirstName} {m.LastName} ({m.Email}) ? Action irréversible.")) return;
+
+        var (ok, error) = await AuthService.DeleteUserAsync(m.Id);
+        SuccessMessage = ok ? $"Compte de {m.Email} supprimé" : error;
         await LoadData();
     }
 
